@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obsidian Web Reader</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <button id="sidebar-toggle" class="header-button">☰</button>
+            <h1 class="app-title">OBSIDIAN READER</h1>
+            <div id="vault-name" class="vault-name">Loading...</div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Sidebar -->
+            <aside id="sidebar" class="sidebar">
+                <div class="sidebar-content">
+                    <div class="search-container">
+                        <input type="text" id="search-input" placeholder="Search files..." class="search-input">
+                    </div>
+                    <div id="file-tree" class="file-tree"></div>
+                </div>
+            </aside>
+
+            <!-- Editor Area -->
+            <main class="editor-area">
+                <div class="editor-header">
+                    <div id="current-file" class="current-file">No file selected</div>
+                    <div id="save-status" class="save-status"></div>
+                </div>
+                <textarea id="editor" class="editor" placeholder="Select a file to edit..."></textarea>
+            </main>
+        </div>
+
+        <!-- Status Bar -->
+        <footer class="status-bar">
+            <div id="status-text" class="status-text">Ready</div>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
