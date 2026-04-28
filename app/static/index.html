@@ -11,21 +11,30 @@
     <div class="app-container">
         <!-- Header -->
         <header class="app-header">
-            <button id="sidebar-toggle" class="header-button">☰</button>
+            <button id="sidebar-toggle" class="header-button">
+                <span class="menu-icon">&#9776;</span>
+            </button>
             <h1 class="app-title">OBSIDIAN READER</h1>
             <div id="vault-name" class="vault-name">Loading...</div>
         </header>
+
+        <!-- Mobile Overlay -->
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
         <!-- Main Content -->
         <div class="main-content">
             <!-- Sidebar -->
             <aside id="sidebar" class="sidebar">
+                <button id="sidebar-close" class="sidebar-close">
+                    <span class="close-icon">&#215;</span>
+                </button>
                 <div class="sidebar-content">
                     <div class="search-container">
                         <input type="text" id="search-input" placeholder="Search files..." class="search-input">
                     </div>
                     <div id="file-tree" class="file-tree"></div>
                 </div>
+                <div id="sidebar-resizer" class="sidebar-resizer"></div>
             </aside>
 
             <!-- Editor Area -->

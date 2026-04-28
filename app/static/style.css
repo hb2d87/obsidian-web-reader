@@ -25,6 +25,11 @@
     /* Borders */
     --border-radius: 0px;
     --border-width: 1px;
+    
+    /* Sidebar */
+    --sidebar-min-width: 15%;
+    --sidebar-max-width: 50%;
+    --sidebar-default-width: 25%;
 }
 
 * {
@@ -71,6 +76,11 @@ body {
     cursor: pointer;
     border-radius: var(--border-radius);
     transition: box-shadow 0.2s ease;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .header-button:hover {
@@ -93,17 +103,20 @@ body {
     display: flex;
     flex: 1;
     overflow: hidden;
+    position: relative;
 }
 
 /* Sidebar */
 .sidebar {
-    width: 25%;
+    width: var(--sidebar-default-width);
     background-color: var(--bg-secondary);
     border-right: var(--border-width) solid var(--border-color);
     display: flex;
     flex-direction: column;
-    transition: width 0.3s ease;
     overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+    transition: transform 0.3s ease, width 0.3s ease;
 }
 
 .sidebar.collapsed {
@@ -111,15 +124,46 @@ body {
     border-right: none;
 }
 
+/* Sidebar Resizer */
+.sidebar-resizer {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 20px;
+    height: 100%;
+    cursor: ew-resize;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+}
+
+.sidebar-resizer::after {
+    content: '';
+    width: 4px;
+    height: 40px;
+    background: var(--border-color);
+    border-radius: 2px;
+    transition: background 0.2s ease;
+}
+
+.sidebar-resizer:hover::after,
+.sidebar-resizer.active::after {
+    background: var(--accent-amber);
+}
+
 .sidebar-content {
     display: flex;
     flex-direction: column;
     height: 100%;
+    overflow: hidden;
 }
 
 .search-container {
     padding: var(--spacing-sm);
     border-bottom: var(--border-width) solid var(--border-color);
+    flex-shrink: 0;
 }
 
 .search-input {
@@ -151,6 +195,7 @@ body {
     display: flex;
     align-items: center;
     transition: box-shadow 0.2s ease;
+    min-height: 28px;
 }
 
 .file-item:hover {
@@ -170,9 +215,52 @@ body {
     padding-left: calc(var(--spacing-md) - 3px);
 }
 
-.folder-icon {
-    margin-right: var(--spacing-xs);
+/* Icons - ASCII/Unicode style */
+.folder-icon,
+.file-icon,
+.close-icon,
+.menu-icon {
+    font-family: var(--font-mono);
     color: var(--accent-cyan);
+    margin-right: var(--spacing-xs);
+    min-width: 16px;
+    text-align: center;
+}
+
+.folder-icon {
+    color: var(--accent-amber);
+}
+
+.file-icon {
+    color: var(--text-secondary);
+}
+
+.close-icon {
+    color: var(--text-primary);
+    cursor: pointer;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.close-icon:hover {
+    color: var(--accent-magenta);
+}
+
+.menu-icon {
+    color: var(--text-primary);
+}
+
+/* Folder Children */
+.folder-children {
+    margin-left: var(--spacing-md);
+}
+
+.folder-children.hidden {
+    display: none;
 }
 
 /* Editor Area */
@@ -196,11 +284,14 @@ body {
 .current-file {
     font-weight: bold;
     font-size: var(--font-size-base);
+    word-break: break-all;
 }
 
 .save-status {
     font-size: var(--font-size-secondary);
     color: var(--accent-green);
+    flex-shrink: 0;
+    margin-left: var(--spacing-sm);
 }
 
 .editor {
@@ -214,13 +305,29 @@ body {
     resize: none;
     outline: none;
     overflow: auto;
+    position: relative;
+}
+
+/* Terminal cursor blink animation */
+@keyframes cursor-blink {
+    0%, 50% {
+        border-right-color: var(--accent-amber);
+    }
+    51%, 100% {
+        border-right-color: transparent;
+    }
 }
 
 .editor:focus {
     box-shadow: inset 0 0 8px rgba(255, 176, 0, 0.2);
 }
 
-/* Status Bar */
+.editor:focus {
+    animation: cursor-blink 1s infinite;
+    caret-color: var(--accent-amber);
+}
+
+/* Status Bar - Terminal Style */
 .status-bar {
     background-color: var(--bg-secondary);
     border-top: var(--border-width) solid var(--border-color);
@@ -231,7 +338,17 @@ body {
 }
 
 .status-text {
+    font-family: var(--font-mono);
     font-size: var(--font-size-secondary);
+    color: var(--text-secondary);
+}
+
+.status-text::before {
+    content: '$ ';
+    color: var(--accent-green);
+}
+
+.status-text.terminal-path {
     color: var(--text-secondary);
 }
 
@@ -257,4 +374,123 @@ body {
 /* Utility Classes */
 .hidden {
     display: none;
+}
+
+/* Mobile Overlay */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 90;
+}
+
+.sidebar-overlay.active {
+    display: block;
+}
+
+/* Mobile Close Button */
+.sidebar-close {
+    display: none;
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 100;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-close:hover {
+    color: var(--accent-magenta);
+}
+
+/* Mobile Styles (<768px) */
+@media (max-width: 767px) {
+    .sidebar {
+        position: fixed;
+        top: 48px;
+        left: 0;
+        bottom: 24px;
+        width: 85%;
+        max-width: 320px;
+        z-index: 95;
+        transform: translateX(-100%);
+        border-right: var(--border-width) solid var(--border-color);
+        box-shadow: 4px 0 16px rgba(0, 0, 0, 0.4);
+    }
+    
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+    
+    .sidebar.collapsed {
+        width: 85%;
+        max-width: 320px;
+    }
+    
+    .sidebar-resizer {
+        display: none;
+    }
+    
+    .sidebar-close {
+        display: flex;
+    }
+    
+    .file-item {
+        min-height: 44px;
+    }
+    
+    .header-button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    
+    .search-input {
+        min-height: 44px;
+        padding: var(--spacing-sm);
+    }
+    
+    .editor-header {
+        padding: var(--spacing-sm);
+    }
+    
+    .current-file {
+        font-size: var(--font-size-secondary);
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .save-status {
+        flex-shrink: 0;
+    }
+}
+
+/* Touch-friendly hit areas */
+@media (max-width: 767px) {
+    .file-item {
+        padding: var(--spacing-sm) 0;
+    }
+}
+
+/* Larger touch targets for mobile */
+@media (max-width: 767px) {
+    button, .header-button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    
+    .folder-icon, .file-icon {
+        min-width: 24px;
+    }
 }

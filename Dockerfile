@@ -15,17 +15,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Configure nginx
+# Configure nginx to bind to all interfaces
 RUN echo ' \
 server { \
-    listen 3000; \
+    listen 0.0.0.0:3000; \
     location / { \
         root /app/app/static; \
         index index.html; \
         try_files $uri $uri/ /index.html; \
     } \
     location /api/ { \
-        proxy_pass http://127.0.0.1:8000; \
+        proxy_pass http://0.0.0.0:8000; \
         proxy_set_header Host $host; \
         proxy_set_header X-Real-IP $remote_addr; \
     } \

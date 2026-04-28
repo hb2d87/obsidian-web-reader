@@ -3,20 +3,44 @@ class ObsidianReader {
     constructor() {
         this.currentFile = null;
         this.isDirty = false;
+        this.isMobile = window.innerWidth < 768;
         this.init();
     }
 
     async init() {
         this.bindEvents();
+        this.setupResize();
         await this.loadVaultName();
         await this.loadFileTree();
         this.setupAutoSave();
+        
+        // Handle resize
+        window.addEventListener('resize', () => {
+            this.isMobile = window.innerWidth < 768;
+            if (this.isMobile) {
+                this.closeSidebar();
+            }
+        });
     }
 
     bindEvents() {
-        // Sidebar toggle
+        // Sidebar toggle (header button)
         document.getElementById('sidebar-toggle').addEventListener('click', () => {
-            this.toggleSidebar();
+            if (this.isMobile) {
+                this.openSidebar();
+            } else {
+                this.toggleSidebar();
+            }
+        });
+
+        // Mobile sidebar close button
+        document.getElementById('sidebar-close').addEventListener('click', () => {
+            this.closeSidebar();
+        });
+
+        // Mobile overlay click to close
+        document.getElementById('sidebar-overlay').addEventListener('click', () => {
+            this.closeSidebar();
         });
 
         // Search input
@@ -42,6 +66,57 @@ class ObsidianReader {
                 this.saveFile();
             }
         });
+    }
+
+    setupResize() {
+        const sidebar = document.getElementById('sidebar');
+        const resizer = document.getElementById('sidebar-resizer');
+        let isResizing = false;
+        let startX = 0;
+        let startWidth = 0;
+
+        const startResize = (e) => {
+            if (this.isMobile) return;
+            isResizing = true;
+            resizer.classList.add('active');
+            startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+            startWidth = sidebar.offsetWidth;
+            document.body.style.cursor = 'ew-resize';
+            document.body.style.userSelect = 'none';
+        };
+
+        const doResize = (e) => {
+            if (!isResizing) return;
+            const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+            const delta = clientX - startX;
+            const containerWidth = sidebar.parentElement.offsetWidth;
+            let newWidth = startWidth + delta;
+            
+            // Apply min/max constraints
+            const minWidth = containerWidth * 0.15;
+            const maxWidth = containerWidth * 0.50;
+            newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+            
+            sidebar.style.width = `${newWidth}px`;
+        };
+
+        const stopResize = () => {
+            if (!isResizing) return;
+            isResizing = false;
+            resizer.classList.remove('active');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        };
+
+        // Mouse events
+        resizer.addEventListener('mousedown', startResize);
+        document.addEventListener('mousemove', doResize);
+        document.addEventListener('mouseup', stopResize);
+
+        // Touch events
+        resizer.addEventListener('touchstart', startResize, { passive: true });
+        document.addEventListener('touchmove', doResize, { passive: false });
+        document.addEventListener('touchend', stopResize);
     }
 
     async loadVaultName() {
@@ -78,21 +153,30 @@ class ObsidianReader {
 
             if (file.is_dir) {
                 fileElement.innerHTML = `
-                    <span class="folder-icon">📁</span>
-                    <span>${file.name}</span>
+                    <span class="folder-icon">&#9654;</span>
+                    <span class="folder-name">${file.name}</span>
                 `;
                 
+                // Click on the entire folder item toggles expand/collapse
                 fileElement.addEventListener('click', (e) => {
-                    if (e.target !== fileElement) return;
-                    this.toggleFolder(fileElement);
+                    // Only toggle if clicking on the folder item itself or its children (not child files)
+                    const isFolderChild = e.target.closest('.folder-children');
+                    if (!isFolderChild) {
+                        this.toggleFolder(fileElement);
+                    }
                 });
             } else {
                 fileElement.innerHTML = `
-                    <span>${file.name}</span>
+                    <span class="file-icon">&#9472;</span>
+                    <span class="file-name">${file.name}</span>
                 `;
                 
                 fileElement.addEventListener('click', () => {
                     this.loadFile(file.path);
+                    // Close sidebar on mobile after selecting a file
+                    if (this.isMobile) {
+                        this.closeSidebar();
+                    }
                 });
             }
 
@@ -101,7 +185,6 @@ class ObsidianReader {
             if (file.is_dir && file.children && file.children.length > 0) {
                 const childrenContainer = document.createElement('div');
                 childrenContainer.className = 'folder-children';
-                childrenContainer.style.marginLeft = '16px';
                 container.appendChild(childrenContainer);
                 this.renderFileTree(file.children, childrenContainer, level + 1);
             }
@@ -113,7 +196,11 @@ class ObsidianReader {
         if (children && children.classList.contains('folder-children')) {
             children.classList.toggle('hidden');
             const icon = folderElement.querySelector('.folder-icon');
-            icon.textContent = children.classList.contains('hidden') ? '📁' : '📂';
+            if (children.classList.contains('hidden')) {
+                icon.innerHTML = '&#9654;'; // ▶ collapsed
+            } else {
+                icon.innerHTML = '&#9660;'; // ▼ expanded
+            }
         }
     }
 
@@ -131,7 +218,8 @@ class ObsidianReader {
                     parent.classList.remove('hidden');
                     parent = parent.parentElement;
                     if (parent && parent.classList.contains('file-item')) {
-                        parent.querySelector('.folder-icon').textContent = '📂';
+                        const icon = parent.querySelector('.folder-icon');
+                        if (icon) icon.innerHTML = '&#9660;'; // ▼ expanded
                     }
                 }
             } else {
@@ -157,7 +245,7 @@ class ObsidianReader {
             
             // Update UI
             document.getElementById('current-file').textContent = path;
-            this.updateStatus(`Loaded ${path}`);
+            this.updateTerminalStatus(path);
             
             // Highlight selected file
             document.querySelectorAll('.file-item').forEach(item => {
@@ -204,9 +292,11 @@ class ObsidianReader {
         this.isDirty = dirty;
         const saveStatus = document.getElementById('save-status');
         if (dirty) {
-            saveStatus.textContent = '●';
+            saveStatus.textContent = '[modified]';
+            saveStatus.style.color = 'var(--accent-amber)';
         } else {
-            saveStatus.textContent = '✓ Saved';
+            saveStatus.textContent = '[saved]';
+            saveStatus.style.color = 'var(--accent-green)';
             setTimeout(() => {
                 if (!this.isDirty) {
                     saveStatus.textContent = '';
@@ -220,15 +310,41 @@ class ObsidianReader {
         sidebar.classList.toggle('collapsed');
     }
 
+    openSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        sidebar.classList.add('mobile-open');
+        overlay.classList.add('active');
+    }
+
+    closeSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('active');
+    }
+
     updateStatus(text, success = false) {
         const statusElement = document.getElementById('status-text');
         statusElement.textContent = text;
+        statusElement.classList.remove('terminal-path');
         
         if (success) {
             statusElement.style.color = 'var(--accent-green)';
             setTimeout(() => {
                 statusElement.style.color = 'var(--text-secondary)';
             }, 2000);
+        }
+    }
+
+    updateTerminalStatus(path) {
+        const statusElement = document.getElementById('status-text');
+        if (path) {
+            statusElement.textContent = `cat ${path}`;
+            statusElement.classList.add('terminal-path');
+        } else {
+            statusElement.textContent = 'Ready';
+            statusElement.classList.remove('terminal-path');
         }
     }
 
