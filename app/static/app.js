@@ -5,6 +5,7 @@ class ObsidianReader {
         this.isDirty = false;
         this.isMobile = window.innerWidth < 768;
         this.expandedFolders = new Set();
+        this.previewEnabled = localStorage.getItem('previewEnabled') === 'true';
         this.init();
     }
 
@@ -14,14 +15,15 @@ class ObsidianReader {
         await this.loadVaultName();
         await this.loadFileTree();
         this.setupAutoSave();
+        this.applyPreviewState();
         
         // Handle resize
         window.addEventListener('resize', () => {
             const wasMobile = this.isMobile;
             this.isMobile = window.innerWidth < 768;
             if (wasMobile && !this.isMobile) {
-                // Transitioning from mobile to desktop
                 this.closeSidebar();
+                this.closeSearchResults();
             }
         });
 
@@ -65,16 +67,30 @@ class ObsidianReader {
         // Search input
         document.getElementById('search-input').addEventListener('input', (e) => {
             this.filterFiles(e.target.value);
+            if (this.isMobile) {
+                this.updateSearchResultsOverlay(e.target.value);
+            }
+        });
+
+        // Search dismiss layer (tap outside to close results on mobile)
+        document.getElementById('search-dismiss-layer').addEventListener('click', () => {
+            this.closeSearchResults();
         });
 
         // Editor events
         const editor = document.getElementById('editor');
         editor.addEventListener('input', () => {
             this.setDirty(true);
+            this.updatePreview();
         });
 
         editor.addEventListener('blur', () => {
             this.saveFile();
+        });
+
+        // Preview toggle button
+        document.getElementById('preview-toggle').addEventListener('click', () => {
+            this.togglePreview();
         });
 
         // Keyboard shortcuts
@@ -287,6 +303,7 @@ class ObsidianReader {
             document.getElementById('editor').value = data.content;
             this.currentFile = path;
             this.setDirty(false);
+            this.updatePreview();
             
             // Update UI
             document.getElementById('current-file').textContent = path;
@@ -405,6 +422,234 @@ class ObsidianReader {
                 this.saveFile();
             }
         }, 30000);
+    }
+
+    // ── Preview Toggle ──────────────────────────────────────────────────
+
+    togglePreview() {
+        this.previewEnabled = !this.previewEnabled;
+        localStorage.setItem('previewEnabled', this.previewEnabled);
+        this.applyPreviewState();
+    }
+
+    applyPreviewState() {
+        const btn = document.getElementById('preview-toggle');
+        const body = document.querySelector('.editor-body');
+
+        if (this.previewEnabled) {
+            btn.classList.add('active');
+            body.classList.add('split-view');
+            document.getElementById('preview-pane').classList.remove('hidden');
+            this.updatePreview();
+        } else {
+            btn.classList.remove('active');
+            body.classList.remove('split-view');
+            document.getElementById('preview-pane').classList.add('hidden');
+        }
+    }
+
+    updatePreview() {
+        if (!this.previewEnabled) return;
+        const content = document.getElementById('editor').value;
+        document.getElementById('preview-pane').innerHTML = this.parseMarkdown(content);
+    }
+
+    // Simple markdown-to-HTML parser (no external libraries)
+    parseMarkdown(text) {
+        if (!text) return '';
+
+        let html = text;
+
+        // Escape HTML first (except for our parsed markdown)
+        // We'll process line by line to be safe
+
+        const lines = html.split('\n');
+        const output = [];
+        let inCodeBlock = false;
+        let inList = false;
+        let listType = null;
+
+        for (let line of lines) {
+            // Code blocks (triple backticks)
+            if (line.startsWith('```')) {
+                if (!inCodeBlock) {
+                    if (inList) { output.push('</ul>'); inList = false; listType = null; }
+                    output.push('<pre><code>');
+                    inCodeBlock = true;
+                } else {
+                    output.push('</code></pre>');
+                    inCodeBlock = false;
+                }
+                continue;
+            }
+            if (inCodeBlock) {
+                output.push(this.escapeHtml(line));
+                continue;
+            }
+
+            // Headers
+            const headerMatch = line.match(/^(#{1,6})\s+(.*)/);
+            if (headerMatch) {
+                if (inList) { output.push('</ul>'); inList = false; listType = null; }
+                const level = headerMatch[1].length;
+                const content = this.parseInlineMarkdown(headerMatch[2]);
+                output.push(`<h${level}>${content}</h${level}>`);
+                continue;
+            }
+
+            // Blockquote
+            if (line.startsWith('>')) {
+                if (inList) { output.push('</ul>'); inList = false; listType = null; }
+                const content = this.parseInlineMarkdown(line.substring(1).trim());
+                output.push(`<blockquote>${content}</blockquote>`);
+                continue;
+            }
+
+            // Horizontal rule
+            if (/^(-{3,}|\*{3,}|_{3,})$/.test(line.trim())) {
+                if (inList) { output.push('</ul>'); inList = false; listType = null; }
+                output.push('<hr>');
+                continue;
+            }
+
+            // Unordered list item
+            const ulMatch = line.match(/^[\-\*\+]\s+(.*)/);
+            if (ulMatch) {
+                if (!inList || listType !== 'ul') {
+                    if (inList) output.push('</ul>');
+                    output.push('<ul>');
+                    inList = true;
+                    listType = 'ul';
+                }
+                output.push(`<li>${this.parseInlineMarkdown(ulMatch[1])}</li>`);
+                continue;
+            }
+
+            // Ordered list item
+            const olMatch = line.match(/^\d+\.\s+(.*)/);
+            if (olMatch) {
+                if (!inList || listType !== 'ol') {
+                    if (inList) output.push('</ul>');
+                    output.push('<ol>');
+                    inList = true;
+                    listType = 'ol';
+                }
+                output.push(`<li>${this.parseInlineMarkdown(olMatch[1])}</li>`);
+                continue;
+            }
+
+            // Blank line — close list
+            if (line.trim() === '') {
+                if (inList) { output.push('</ul>'); inList = false; listType = null; }
+                continue;
+            }
+
+            // Paragraph
+            if (inList) { output.push('</ul>'); inList = false; listType = null; }
+            output.push(`<p>${this.parseInlineMarkdown(line)}</p>`);
+        }
+
+        // Close any open list
+        if (inList) output.push(`</${listType}>`);
+
+        return output.join('\n');
+    }
+
+    // Inline markdown: bold, italic, code, links
+    parseInlineMarkdown(text) {
+        if (!text) return '';
+
+        // Inline code: highest priority, process first
+        text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+        // Bold
+        text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+        // Italic (single asterisk or underscore)
+        text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+        text = text.replace(/_([^_]+)_/g, '<em>$1</em>');
+
+        // Links: [text](url)
+        text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+        return text;
+    }
+
+    escapeHtml(text) {
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    // ── Mobile Search Overlay ────────────────────────────────────────
+
+    updateSearchResultsOverlay(query) {
+        const overlay = document.getElementById('search-results-overlay');
+        const dismissLayer = document.getElementById('search-dismiss-layer');
+
+        if (!query) {
+            overlay.classList.remove('active');
+            dismissLayer.classList.remove('active');
+            overlay.innerHTML = '';
+            return;
+        }
+
+        query = query.toLowerCase();
+        const allItems = document.querySelectorAll('#file-tree .file-item');
+        const matches = [];
+        let shownCount = 0;
+
+        allItems.forEach(item => {
+            const fileName = (item.querySelector('.file-name, .folder-name') || item).textContent.toLowerCase();
+            if (fileName.includes(query)) {
+                matches.push(item.cloneNode(true));
+                shownCount++;
+            }
+        });
+
+        if (matches.length === 0) {
+            overlay.innerHTML = '<div class="file-item" style="color:var(--text-secondary);padding:8px 12px;">No matches</div>';
+            overlay.classList.add('active');
+            dismissLayer.classList.add('active');
+            return;
+        }
+
+        overlay.innerHTML = '';
+        matches.slice(0, 20).forEach(item => {
+            // Remove nested folder-children from clones
+            const children = item.querySelector('.folder-children');
+            if (children) children.remove();
+
+            item.addEventListener('click', () => {
+                const path = item.dataset.path;
+                const isDir = item.classList.contains('folder');
+                if (!isDir && path) {
+                    this.loadFile(path);
+                    this.closeSearchResults();
+                    if (this.isMobile) this.closeSidebar();
+                } else if (isDir) {
+                    // Expand folder in main tree
+                    const originalItem = document.querySelector(`#file-tree .file-item[data-path="${CSS.escape(path)}"]`);
+                    if (originalItem) {
+                        this.toggleFolder(originalItem, path);
+                        this.filterFiles(document.getElementById('search-input').value);
+                    }
+                    this.closeSearchResults();
+                }
+            });
+            overlay.appendChild(item);
+        });
+
+        overlay.classList.add('active');
+        dismissLayer.classList.add('active');
+    }
+
+    closeSearchResults() {
+        document.getElementById('search-results-overlay').classList.remove('active');
+        document.getElementById('search-dismiss-layer').classList.remove('active');
+        document.getElementById('search-results-overlay').innerHTML = '';
     }
 }
 

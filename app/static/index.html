@@ -31,9 +31,11 @@
                 <div class="sidebar-content">
                     <div class="search-container">
                         <input type="text" id="search-input" placeholder="Search files..." class="search-input">
+                        <div id="search-results-overlay" class="search-results-overlay"></div>
                     </div>
                     <div id="file-tree" class="file-tree"></div>
                 </div>
+                <div id="search-dismiss-layer" class="search-dismiss-layer"></div>
                 <div id="sidebar-resizer" class="sidebar-resizer">
                     <div class="resizer-handle"></div>
                 </div>
@@ -44,6 +46,14 @@
                 <div class="editor-header">
                     <div id="current-file" class="current-file">No file selected</div>
                     <div id="save-status" class="save-status"></div>
+                    <button id="preview-toggle" class="preview-toggle" aria-label="Toggle preview">PREV</button>
+                </div>
+                <div class="editor-body">
+                    <div class="editor-container">
+                        <div class="editor-prompt">&gt; </div>
+                        <textarea id="editor" class="editor" placeholder="Select a file to edit..." spellcheck="false"></textarea>
+                    </div>
+                    <div id="preview-pane" class="preview-pane hidden"></div>
                 </div>
                 <div class="editor-container">
                     <div class="editor-prompt">&gt; </div>

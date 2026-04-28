@@ -63,6 +63,8 @@ A self-hosted web reader for Obsidian vaults. Dark, minimal, hardware-inspired U
 8. **Terminal aesthetic** — editor feels like a terminal: cursor blink, blinking cursor on textarea, command-line style status bar
 9. **Mobile-first layout** — single column on small screens, sidebar as overlay drawer, touch-optimized tap targets (min 44px)
 10. **Consistent iconography** — no emoji anywhere. Use simple ASCII/Unicode characters styled as mono text: `▶` for folders, `─` for files, `×` for close, `☰` for menu. All icons use same font/color as surrounding text
+11. **Preview toggle** — button in toolbar to show/hide a rendered markdown preview pane alongside the editor. Toggle state persists. Preview uses a simple markdown-to-HTML render (no external lib, basic regex replacements for headers/lists/links/bold/italic/code). Preview pane takes 40% width, editor 60%.
+12. **Mobile search fix** — In mobile/vertical view: clicking search input does NOT hide the sidebar overlay. Search input stays visible at top of screen. Folder tree remains accessible via ☰ button. Search results overlay the content rather than replacing it.
 
 ## Tech Stack
 
@@ -120,6 +122,8 @@ _test/
 10. Status bar shows terminal-style path
 11. No emoji used anywhere — all icons are ASCII/Unicode mono characters
 12. Mobile layout: sidebar becomes overlay drawer, tap targets ≥44px
+13. Preview toggle shows/hides markdown preview pane (40/60 split)
+14. Mobile search: search input visible, sidebar stays accessible via ☰
 
 ## Out of Scope (v1)
 - WikiLinks [[]] autocomplete

@@ -449,12 +449,215 @@ body {
     background: var(--accent-amber);
 }
 
-/* Utility Classes */
-.hidden {
+/* Preview Toggle Button */
+.preview-toggle {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-secondary);
+    padding: 2px 8px;
+    cursor: pointer;
+    border-radius: var(--border-radius);
+    transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    flex-shrink: 0;
+    min-width: 44px;
+    min-height: 32px;
+    letter-spacing: 0.5px;
+}
+
+.preview-toggle:hover {
+    border-color: var(--accent-amber);
+    color: var(--accent-amber);
+    box-shadow: 0 0 8px rgba(255, 176, 0, 0.2);
+}
+
+.preview-toggle.active {
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+    box-shadow: 0 0 8px rgba(57, 255, 20, 0.2);
+}
+
+/* Editor Body - supports split view */
+.editor-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Split View */
+.editor-body.split-view {
+    gap: 1px;
+    background: var(--border-color);
+}
+
+.editor-body.split-view > .editor-container {
+    width: 60%;
+    flex-shrink: 0;
+}
+
+.editor-body.split-view > .preview-pane {
+    width: 40%;
+    flex-shrink: 0;
+}
+
+/* Preview Pane */
+.preview-pane {
+    flex: 1;
+    background-color: var(--bg-primary);
+    overflow-y: auto;
+    padding: var(--spacing-md);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-base);
+    line-height: 1.6;
+    color: #888888;
+    border-left: none;
+}
+
+.preview-pane.hidden {
     display: none;
 }
 
-/* Mobile Overlay */
+/* Preview typography */
+.preview-pane h1,
+.preview-pane h2,
+.preview-pane h3,
+.preview-pane h4,
+.preview-pane h5,
+.preview-pane h6 {
+    color: var(--text-primary);
+    margin: 1.2em 0 0.5em 0;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.preview-pane h1 { font-size: 1.4em; }
+.preview-pane h2 { font-size: 1.2em; }
+.preview-pane h3 { font-size: 1.1em; }
+.preview-pane h4 { font-size: 1em; }
+.preview-pane h5 { font-size: 0.9em; }
+.preview-pane h6 { font-size: 0.85em; color: var(--text-secondary); }
+
+.preview-pane p {
+    margin: 0.8em 0;
+}
+
+.preview-pane strong {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.preview-pane em {
+    font-style: italic;
+    color: var(--accent-cyan);
+}
+
+.preview-pane code {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-size: 0.9em;
+    color: var(--accent-amber);
+}
+
+.preview-pane pre {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: var(--spacing-sm);
+    margin: 0.8em 0;
+    overflow-x: auto;
+    white-space: pre;
+}
+
+.preview-pane pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--text-primary);
+}
+
+.preview-pane a {
+    color: var(--accent-cyan);
+    text-decoration: none;
+}
+
+.preview-pane a:hover {
+    text-decoration: underline;
+    color: var(--accent-amber);
+}
+
+.preview-pane ul,
+.preview-pane ol {
+    margin: 0.8em 0;
+    padding-left: var(--spacing-lg);
+}
+
+.preview-pane li {
+    margin: 0.3em 0;
+}
+
+.preview-pane blockquote {
+    border-left: 3px solid var(--accent-amber);
+    padding-left: var(--spacing-md);
+    margin: 0.8em 0;
+    color: var(--text-secondary);
+}
+
+.preview-pane hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 1em 0;
+}
+
+/* Mobile Search Overlay - results appear as dropdown below search */
+.search-container {
+    position: relative;
+    z-index: 10;
+}
+
+.search-results-overlay {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-top: none;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 101;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.search-results-overlay.active {
+    display: block;
+}
+
+.search-results-overlay .file-item {
+    padding: var(--spacing-sm);
+    min-height: 44px;
+}
+
+.search-results-overlay .file-item.file {
+    padding-left: var(--spacing-md);
+}
+
+/* Click outside to dismiss search results */
+.search-dismiss-layer {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 99;
+}
+
+.search-dismiss-layer.active {
+    display: block;
+}
 .sidebar-overlay {
     display: none;
     position: fixed;
@@ -534,6 +737,18 @@ body {
         display: flex;
     }
     
+    /* Mobile: search stays in sidebar, results overlay below it */
+    .search-container {
+        position: sticky;
+        top: 0;
+        background: var(--bg-secondary);
+        z-index: 10;
+    }
+    
+    .search-results-overlay {
+        max-height: 240px;
+    }
+    
     /* Touch-friendly file items */
     .file-item {
         min-height: 44px;
@@ -580,6 +795,11 @@ body {
         flex-shrink: 0;
     }
     
+    /* Preview toggle on mobile */
+    .preview-toggle {
+        min-height: 32px;
+    }
+    
     /* Editor */
     .editor {
         padding: var(--spacing-sm);
@@ -590,6 +810,16 @@ body {
     .editor-prompt {
         top: var(--spacing-sm);
         left: var(--spacing-sm);
+    }
+    
+    /* Split view on mobile */
+    .editor-body.split-view > .editor-container,
+    .editor-body.split-view > .preview-pane {
+        width: 100%;
+    }
+    
+    .editor-body.split-view {
+        flex-direction: column;
     }
     
     /* Status bar */
