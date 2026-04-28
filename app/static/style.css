@@ -64,6 +64,7 @@ body {
     background-color: var(--bg-secondary);
     border-bottom: var(--border-width) solid var(--border-color);
     height: 48px;
+    flex-shrink: 0;
 }
 
 .header-button {
@@ -109,6 +110,8 @@ body {
 /* Sidebar */
 .sidebar {
     width: var(--sidebar-default-width);
+    min-width: var(--sidebar-min-width);
+    max-width: var(--sidebar-max-width);
     background-color: var(--bg-secondary);
     border-right: var(--border-width) solid var(--border-color);
     display: flex;
@@ -121,10 +124,12 @@ body {
 
 .sidebar.collapsed {
     width: 0;
+    min-width: 0;
+    max-width: 0;
     border-right: none;
 }
 
-/* Sidebar Resizer */
+/* Sidebar Resizer - Touch-friendly hit area (min 20px) */
 .sidebar-resizer {
     position: absolute;
     right: 0;
@@ -139,18 +144,18 @@ body {
     touch-action: none;
 }
 
-.sidebar-resizer::after {
-    content: '';
+.resizer-handle {
     width: 4px;
     height: 40px;
     background: var(--border-color);
     border-radius: 2px;
-    transition: background 0.2s ease;
+    transition: background 0.2s ease, height 0.2s ease;
 }
 
-.sidebar-resizer:hover::after,
-.sidebar-resizer.active::after {
+.sidebar-resizer:hover .resizer-handle,
+.sidebar-resizer.active .resizer-handle {
     background: var(--accent-amber);
+    height: 60px;
 }
 
 .sidebar-content {
@@ -173,8 +178,13 @@ body {
     color: var(--text-primary);
     font-family: var(--font-mono);
     font-size: var(--font-size-secondary);
-    padding: var(--spacing-xs);
+    padding: var(--spacing-sm);
     border-radius: var(--border-radius);
+    min-height: 44px;
+}
+
+.search-input::placeholder {
+    color: var(--text-secondary);
 }
 
 .search-input:focus {
@@ -189,13 +199,16 @@ body {
     padding: var(--spacing-sm);
 }
 
+/* File Items - Touch-friendly tap targets */
 .file-item {
-    padding: var(--spacing-xs) 0;
+    padding: var(--spacing-sm) var(--spacing-xs);
     cursor: pointer;
     display: flex;
     align-items: center;
     transition: box-shadow 0.2s ease;
-    min-height: 28px;
+    min-height: 36px;
+    border-radius: var(--border-radius);
+    user-select: none;
 }
 
 .file-item:hover {
@@ -213,9 +226,10 @@ body {
 .file-item.selected {
     border-left: 3px solid var(--accent-amber);
     padding-left: calc(var(--spacing-md) - 3px);
+    background: rgba(255, 176, 0, 0.05);
 }
 
-/* Icons - ASCII/Unicode style */
+/* Icons - Consistent ASCII/Unicode Mono Characters */
 .folder-icon,
 .file-icon,
 .close-icon,
@@ -223,8 +237,12 @@ body {
     font-family: var(--font-mono);
     color: var(--accent-cyan);
     margin-right: var(--spacing-xs);
-    min-width: 16px;
+    min-width: 20px;
     text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .folder-icon {
@@ -237,21 +255,12 @@ body {
 
 .close-icon {
     color: var(--text-primary);
-    cursor: pointer;
-    min-width: 44px;
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     font-size: 18px;
-}
-
-.close-icon:hover {
-    color: var(--accent-magenta);
 }
 
 .menu-icon {
     color: var(--text-primary);
+    font-size: 16px;
 }
 
 /* Folder Children */
@@ -279,12 +288,14 @@ body {
     background-color: var(--bg-secondary);
     border-bottom: var(--border-width) solid var(--border-color);
     height: 48px;
+    flex-shrink: 0;
 }
 
 .current-file {
     font-weight: bold;
     font-size: var(--font-size-base);
     word-break: break-all;
+    color: var(--text-primary);
 }
 
 .save-status {
@@ -292,8 +303,37 @@ body {
     color: var(--accent-green);
     flex-shrink: 0;
     margin-left: var(--spacing-sm);
+    opacity: 0;
+    transition: opacity 0.2s ease;
 }
 
+.save-status.visible {
+    opacity: 1;
+}
+
+/* Terminal Aesthetic - Editor Container */
+.editor-container {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+
+.editor-prompt {
+    position: absolute;
+    top: var(--spacing-md);
+    left: var(--spacing-md);
+    color: var(--accent-cyan);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-base);
+    pointer-events: none;
+    z-index: 1;
+    line-height: 1.5;
+}
+
+/* Terminal-style Editor Textarea */
 .editor {
     flex: 1;
     background-color: var(--bg-primary);
@@ -302,29 +342,65 @@ body {
     font-family: var(--font-mono);
     font-size: var(--font-size-base);
     padding: var(--spacing-md);
+    padding-left: calc(var(--spacing-md) + 20px);
     resize: none;
     outline: none;
     overflow: auto;
-    position: relative;
+    line-height: 1.5;
+    caret-color: var(--accent-amber);
 }
 
-/* Terminal cursor blink animation */
+/* Blinking Terminal Cursor Effect */
 @keyframes cursor-blink {
-    0%, 50% {
+    0%, 49% {
         border-right-color: var(--accent-amber);
     }
-    51%, 100% {
+    50%, 100% {
         border-right-color: transparent;
     }
 }
 
 .editor:focus {
-    box-shadow: inset 0 0 8px rgba(255, 176, 0, 0.2);
+    box-shadow: inset 0 0 12px rgba(255, 176, 0, 0.1);
+}
+
+.editor:focus ~ .cursor-overlay {
+    animation: cursor-blink 1s step-end infinite;
+}
+
+/* Blinking block cursor overlay */
+.editor-container::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 18px;
+    background: var(--accent-amber);
+    pointer-events: none;
+    opacity: 0;
+    animation: none;
+}
+
+.editor-container.active::after {
+    opacity: 1;
+    animation: block-cursor-blink 1s step-end infinite;
+}
+
+@keyframes block-cursor-blink {
+    0%, 49% {
+        opacity: 1;
+    }
+    50%, 100% {
+        opacity: 0;
+    }
 }
 
 .editor:focus {
-    animation: cursor-blink 1s infinite;
-    caret-color: var(--accent-amber);
+    border-right: 2px solid var(--accent-amber);
+    animation: cursor-blink 1s step-end infinite;
+}
+
+.editor-container.active {
+    box-shadow: inset 0 0 12px rgba(255, 176, 0, 0.1);
 }
 
 /* Status Bar - Terminal Style */
@@ -332,23 +408,25 @@ body {
     background-color: var(--bg-secondary);
     border-top: var(--border-width) solid var(--border-color);
     padding: var(--spacing-xs) var(--spacing-md);
-    height: 24px;
+    height: 28px;
     display: flex;
     align-items: center;
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-secondary);
+}
+
+.terminal-prompt {
+    color: var(--accent-green);
+    margin-right: var(--spacing-xs);
+}
+
+.terminal-command {
+    color: var(--accent-cyan);
+    margin-right: 1px;
 }
 
 .status-text {
-    font-family: var(--font-mono);
-    font-size: var(--font-size-secondary);
-    color: var(--text-secondary);
-}
-
-.status-text::before {
-    content: '$ ';
-    color: var(--accent-green);
-}
-
-.status-text.terminal-path {
     color: var(--text-secondary);
 }
 
@@ -384,7 +462,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
     z-index: 90;
 }
 
@@ -409,25 +487,33 @@ body {
     min-height: 44px;
     align-items: center;
     justify-content: center;
+    padding: 0;
 }
 
 .sidebar-close:hover {
     color: var(--accent-magenta);
 }
 
+.sidebar-close:focus {
+    outline: 1px solid var(--accent-amber);
+    outline-offset: 2px;
+}
+
 /* Mobile Styles (<768px) */
 @media (max-width: 767px) {
+    /* Sidebar as overlay drawer */
     .sidebar {
         position: fixed;
         top: 48px;
         left: 0;
-        bottom: 24px;
+        bottom: 28px;
         width: 85%;
         max-width: 320px;
+        min-width: 280px;
         z-index: 95;
         transform: translateX(-100%);
         border-right: var(--border-width) solid var(--border-color);
-        box-shadow: 4px 0 16px rgba(0, 0, 0, 0.4);
+        box-shadow: 4px 0 16px rgba(0, 0, 0, 0.5);
     }
     
     .sidebar.mobile-open {
@@ -437,6 +523,7 @@ body {
     .sidebar.collapsed {
         width: 85%;
         max-width: 320px;
+        min-width: 280px;
     }
     
     .sidebar-resizer {
@@ -447,50 +534,114 @@ body {
         display: flex;
     }
     
+    /* Touch-friendly file items */
     .file-item {
         min-height: 44px;
+        padding: var(--spacing-sm) var(--spacing-xs);
     }
     
+    .file-item.file {
+        padding-left: var(--spacing-lg);
+    }
+    
+    .file-item.selected {
+        padding-left: calc(var(--spacing-lg) - 3px);
+    }
+    
+    /* Header button */
     .header-button {
         min-width: 44px;
         min-height: 44px;
     }
     
+    /* Search input */
     .search-input {
         min-height: 44px;
         padding: var(--spacing-sm);
     }
     
+    /* Editor header */
     .editor-header {
         padding: var(--spacing-sm);
+        height: auto;
+        min-height: 44px;
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
     }
     
     .current-file {
         font-size: var(--font-size-secondary);
         flex: 1;
         min-width: 0;
+        word-break: break-all;
     }
     
     .save-status {
         flex-shrink: 0;
     }
-}
-
-/* Touch-friendly hit areas */
-@media (max-width: 767px) {
-    .file-item {
-        padding: var(--spacing-sm) 0;
+    
+    /* Editor */
+    .editor {
+        padding: var(--spacing-sm);
+        padding-left: calc(var(--spacing-sm) + 20px);
+        font-size: var(--font-size-base);
+    }
+    
+    .editor-prompt {
+        top: var(--spacing-sm);
+        left: var(--spacing-sm);
+    }
+    
+    /* Status bar */
+    .status-bar {
+        font-size: 11px;
+        height: 24px;
     }
 }
 
-/* Larger touch targets for mobile */
+/* Extra small screens */
+@media (max-width: 380px) {
+    .app-title {
+        font-size: 11px;
+        letter-spacing: 0;
+    }
+    
+    .vault-name {
+        display: none;
+    }
+}
+
+/* Touch-friendly hit areas - ensure minimum 44px on mobile */
 @media (max-width: 767px) {
-    button, .header-button {
+    .file-item {
+        min-height: 44px;
+    }
+    
+    .folder-icon,
+    .file-icon {
+        min-width: 24px;
+        min-height: 44px;
+    }
+    
+    button,
+    .header-button,
+    .sidebar-close {
         min-width: 44px;
         min-height: 44px;
     }
     
-    .folder-icon, .file-icon {
-        min-width: 24px;
+    .folder-name,
+    .file-name {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
     }
+}
+
+/* Focus styles for accessibility */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--accent-amber);
+    outline-offset: 2px;
 }

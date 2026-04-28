@@ -4,6 +4,7 @@ class ObsidianReader {
         this.currentFile = null;
         this.isDirty = false;
         this.isMobile = window.innerWidth < 768;
+        this.expandedFolders = new Set();
         this.init();
     }
 
@@ -16,10 +17,28 @@ class ObsidianReader {
         
         // Handle resize
         window.addEventListener('resize', () => {
+            const wasMobile = this.isMobile;
             this.isMobile = window.innerWidth < 768;
-            if (this.isMobile) {
+            if (wasMobile && !this.isMobile) {
+                // Transitioning from mobile to desktop
                 this.closeSidebar();
             }
+        });
+
+        // Initialize terminal cursor
+        this.setupTerminalCursor();
+    }
+
+    setupTerminalCursor() {
+        const editor = document.getElementById('editor');
+        const container = document.querySelector('.editor-container');
+        
+        editor.addEventListener('focus', () => {
+            container.classList.add('active');
+        });
+        
+        editor.addEventListener('blur', () => {
+            container.classList.remove('active');
         });
     }
 
@@ -77,6 +96,8 @@ class ObsidianReader {
 
         const startResize = (e) => {
             if (this.isMobile) return;
+            
+            e.preventDefault();
             isResizing = true;
             resizer.classList.add('active');
             startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
@@ -87,17 +108,20 @@ class ObsidianReader {
 
         const doResize = (e) => {
             if (!isResizing) return;
+            
             const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
             const delta = clientX - startX;
             const containerWidth = sidebar.parentElement.offsetWidth;
             let newWidth = startWidth + delta;
             
-            // Apply min/max constraints
-            const minWidth = containerWidth * 0.15;
-            const maxWidth = containerWidth * 0.50;
+            // Apply min/max constraints (15% - 50%)
+            const minWidth = Math.max(150, containerWidth * 0.15);
+            const maxWidth = Math.min(containerWidth * 0.50, containerWidth * 0.50);
             newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
             
             sidebar.style.width = `${newWidth}px`;
+            sidebar.style.minWidth = `${minWidth}px`;
+            sidebar.style.maxWidth = `${maxWidth}px`;
         };
 
         const stopResize = () => {
@@ -113,10 +137,13 @@ class ObsidianReader {
         document.addEventListener('mousemove', doResize);
         document.addEventListener('mouseup', stopResize);
 
-        // Touch events
-        resizer.addEventListener('touchstart', startResize, { passive: true });
+        // Touch events with passive: false for preventDefault
+        resizer.addEventListener('touchstart', startResize, { passive: false });
         document.addEventListener('touchmove', doResize, { passive: false });
         document.addEventListener('touchend', stopResize);
+        
+        // Prevent context menu on resizer (for long-press on mobile)
+        resizer.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
     async loadVaultName() {
@@ -126,6 +153,7 @@ class ObsidianReader {
             document.getElementById('vault-name').textContent = data.name;
         } catch (error) {
             console.error('Failed to load vault name:', error);
+            document.getElementById('vault-name').textContent = 'Vault';
         }
     }
 
@@ -136,7 +164,7 @@ class ObsidianReader {
             this.renderFileTree(data.files);
         } catch (error) {
             console.error('Failed to load file tree:', error);
-            this.updateStatus('Failed to load file tree');
+            this.updateStatus('Failed to load file tree', false);
         }
     }
 
@@ -151,27 +179,27 @@ class ObsidianReader {
             fileElement.className = `file-item ${file.is_dir ? 'folder' : 'file'}`;
             fileElement.dataset.path = file.path;
 
+            const isExpanded = file.is_dir && this.expandedFolders.has(file.path);
+            
             if (file.is_dir) {
                 fileElement.innerHTML = `
-                    <span class="folder-icon">&#9654;</span>
+                    <span class="folder-icon">${isExpanded ? '▼' : '▶'}</span>
                     <span class="folder-name">${file.name}</span>
                 `;
                 
-                // Click on the entire folder item toggles expand/collapse
+                // Click handler for folder toggle - handle both icon and name clicks
                 fileElement.addEventListener('click', (e) => {
-                    // Only toggle if clicking on the folder item itself or its children (not child files)
-                    const isFolderChild = e.target.closest('.folder-children');
-                    if (!isFolderChild) {
-                        this.toggleFolder(fileElement);
-                    }
+                    e.stopPropagation();
+                    this.toggleFolder(fileElement, file.path);
                 });
             } else {
                 fileElement.innerHTML = `
-                    <span class="file-icon">&#9472;</span>
+                    <span class="file-icon">─</span>
                     <span class="file-name">${file.name}</span>
                 `;
                 
-                fileElement.addEventListener('click', () => {
+                fileElement.addEventListener('click', (e) => {
+                    e.stopPropagation();
                     this.loadFile(file.path);
                     // Close sidebar on mobile after selecting a file
                     if (this.isMobile) {
@@ -184,22 +212,26 @@ class ObsidianReader {
 
             if (file.is_dir && file.children && file.children.length > 0) {
                 const childrenContainer = document.createElement('div');
-                childrenContainer.className = 'folder-children';
+                childrenContainer.className = `folder-children${isExpanded ? '' : ' hidden'}`;
                 container.appendChild(childrenContainer);
                 this.renderFileTree(file.children, childrenContainer, level + 1);
             }
         });
     }
 
-    toggleFolder(folderElement) {
+    toggleFolder(folderElement, folderPath) {
         const children = folderElement.nextElementSibling;
         if (children && children.classList.contains('folder-children')) {
-            children.classList.toggle('hidden');
-            const icon = folderElement.querySelector('.folder-icon');
-            if (children.classList.contains('hidden')) {
-                icon.innerHTML = '&#9654;'; // ▶ collapsed
+            const isCurrentlyHidden = children.classList.contains('hidden');
+            
+            if (isCurrentlyHidden) {
+                children.classList.remove('hidden');
+                this.expandedFolders.add(folderPath);
+                folderElement.querySelector('.folder-icon').textContent = '▼';
             } else {
-                icon.innerHTML = '&#9660;'; // ▼ expanded
+                children.classList.add('hidden');
+                this.expandedFolders.delete(folderPath);
+                folderElement.querySelector('.folder-icon').textContent = '▶';
             }
         }
     }
@@ -212,18 +244,32 @@ class ObsidianReader {
             const fileName = item.textContent.toLowerCase();
             if (query === '' || fileName.includes(query)) {
                 item.style.display = '';
-                // Show parent folders
+                // Show parent folders when results are shown
                 let parent = item.parentElement;
                 while (parent && parent.classList.contains('folder-children')) {
                     parent.classList.remove('hidden');
                     parent = parent.parentElement;
                     if (parent && parent.classList.contains('file-item')) {
                         const icon = parent.querySelector('.folder-icon');
-                        if (icon) icon.innerHTML = '&#9660;'; // ▼ expanded
+                        if (icon) {
+                            icon.textContent = '▼';
+                            // Track as expanded
+                            this.expandedFolders.add(parent.dataset.path);
+                        }
                     }
                 }
             } else {
                 item.style.display = 'none';
+            }
+        });
+
+        // Hide empty folder containers
+        document.querySelectorAll('.folder-children').forEach(container => {
+            const visibleItems = container.querySelectorAll('.file-item:not([style*="display: none"])');
+            if (visibleItems.length === 0) {
+                container.style.display = 'none';
+            } else {
+                container.style.display = '';
             }
         });
     }
@@ -235,7 +281,6 @@ class ObsidianReader {
         }
 
         try {
-            this.updateStatus(`Loading ${path}...`);
             const response = await fetch(`/api/file?path=${encodeURIComponent(path)}`);
             const data = await response.json();
             
@@ -251,13 +296,16 @@ class ObsidianReader {
             document.querySelectorAll('.file-item').forEach(item => {
                 item.classList.remove('selected');
             });
-            const fileElement = document.querySelector(`.file-item[data-path="${path}"]`);
+            const fileElement = document.querySelector(`.file-item[data-path="${CSS.escape(path)}"]`);
             if (fileElement) {
                 fileElement.classList.add('selected');
             }
+            
+            // Focus editor
+            document.getElementById('editor').focus();
         } catch (error) {
             console.error('Failed to load file:', error);
-            this.updateStatus(`Failed to load ${path}`);
+            this.updateStatus('Failed to load ' + path, false);
         }
     }
 
@@ -265,7 +313,6 @@ class ObsidianReader {
         if (!this.currentFile || !this.isDirty) return;
 
         try {
-            this.updateStatus(`Saving ${this.currentFile}...`);
             const content = document.getElementById('editor').value;
             
             const response = await fetch(`/api/file?path=${encodeURIComponent(this.currentFile)}`, {
@@ -278,13 +325,13 @@ class ObsidianReader {
             
             if (response.ok) {
                 this.setDirty(false);
-                this.updateStatus(`Saved ${this.currentFile}`, true);
+                this.updateStatus('Saved ' + this.currentFile, true);
             } else {
                 throw new Error('Save failed');
             }
         } catch (error) {
             console.error('Failed to save file:', error);
-            this.updateStatus(`Failed to save ${this.currentFile}`);
+            this.updateStatus('Failed to save ' + this.currentFile, false);
         }
     }
 
@@ -294,12 +341,14 @@ class ObsidianReader {
         if (dirty) {
             saveStatus.textContent = '[modified]';
             saveStatus.style.color = 'var(--accent-amber)';
+            saveStatus.classList.add('visible');
         } else {
             saveStatus.textContent = '[saved]';
             saveStatus.style.color = 'var(--accent-green)';
+            saveStatus.classList.add('visible');
             setTimeout(() => {
                 if (!this.isDirty) {
-                    saveStatus.textContent = '';
+                    saveStatus.classList.remove('visible');
                 }
             }, 2000);
         }
@@ -315,6 +364,7 @@ class ObsidianReader {
         const overlay = document.getElementById('sidebar-overlay');
         sidebar.classList.add('mobile-open');
         overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
     }
 
     closeSidebar() {
@@ -322,29 +372,29 @@ class ObsidianReader {
         const overlay = document.getElementById('sidebar-overlay');
         sidebar.classList.remove('mobile-open');
         overlay.classList.remove('active');
+        document.body.style.overflow = '';
     }
 
     updateStatus(text, success = false) {
         const statusElement = document.getElementById('status-text');
-        statusElement.textContent = text;
-        statusElement.classList.remove('terminal-path');
+        statusElement.textContent = ' ' + text;
         
         if (success) {
             statusElement.style.color = 'var(--accent-green)';
             setTimeout(() => {
                 statusElement.style.color = 'var(--text-secondary)';
             }, 2000);
+        } else {
+            statusElement.style.color = 'var(--accent-magenta)';
         }
     }
 
     updateTerminalStatus(path) {
         const statusElement = document.getElementById('status-text');
         if (path) {
-            statusElement.textContent = `cat ${path}`;
-            statusElement.classList.add('terminal-path');
+            statusElement.textContent = ' ' + path;
         } else {
-            statusElement.textContent = 'Ready';
-            statusElement.classList.remove('terminal-path');
+            statusElement.textContent = ' Ready';
         }
     }
 
