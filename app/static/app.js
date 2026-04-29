@@ -363,19 +363,28 @@ class ObsidianReader {
             const isExpanded = file.is_dir && !this.collapsedFolders.has(file.path);
             
             if (file.is_dir) {
-                fileElement.innerHTML = `
-                    <span class="folder-icon font-mono">${isExpanded ? '▼' : '▶'}</span>
-                    <span class="folder-name truncate">${file.name}</span>
-                `;
+                const folderIcon = document.createElement('span');
+                folderIcon.className = 'folder-icon font-mono';
+                folderIcon.textContent = isExpanded ? '▼' : '▶';
+                const folderName = document.createElement('span');
+                folderName.className = 'folder-name truncate';
+                folderName.textContent = file.name;
+                fileElement.appendChild(folderIcon);
+                fileElement.appendChild(folderName);
                 fileElement.addEventListener('click', (e) => {
                     e.stopPropagation();
                     this.toggleFolder(fileElement, file.path);
                 });
             } else {
-                fileElement.innerHTML = `
-                    <span class="file-icon font-mono">─</span>
-                    <span class="file-name truncate" title="${file.path}">${file.name}</span>
-                `;
+                const fileIcon = document.createElement('span');
+                fileIcon.className = 'file-icon font-mono';
+                fileIcon.textContent = '─';
+                const fileName = document.createElement('span');
+                fileName.className = 'file-name truncate';
+                fileName.title = file.path;
+                fileName.textContent = file.name;
+                fileElement.appendChild(fileIcon);
+                fileElement.appendChild(fileName);
                 fileElement.addEventListener('click', (e) => {
                     e.stopPropagation();
                     this.switchView('reader');
