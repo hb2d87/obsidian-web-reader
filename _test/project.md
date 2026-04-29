@@ -6,9 +6,9 @@ A self-hosted web reader for Obsidian vaults. Dark, minimal, hardware-inspired U
 ## Design: Teenage Engineering K.O.II Aesthetic
 
 ### Colors
-- Background: #0d0d0d (near-black)
-- Surface: #1a1a1a (panels)
-- Border: #2a2a2a (subtle dividers)
+- Background: .#0d0d0d (near-black)
+- Surface: .#1a1a1a (panels)
+- Border: .#2a2a2a (subtle dividers)
 - Text primary: #e8e8e8 (off-white)
 - Text secondary: #888888 (muted)
 - Accent amber: #ffb000 (primary actions)

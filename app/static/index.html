@@ -1,73 +1,337 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="light" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>Obsidian Web Reader</title>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="style.css">
+    
+    <script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                "inverse-surface": "#2f3131",
+                "surface-bright": "#faf9f9",
+                "surface-container-lowest": "#ffffff",
+                "surface-tint": "#5d5f5f",
+                "surface-container-low": "#f4f3f3",
+                "on-background": "#1a1c1c",
+                "background": "#faf9f9",
+                "surface-dim": "#dadada",
+                "on-surface-variant": "#444748",
+                "secondary-container": "#dc3214",
+                "primary-container": "#f5f5f5",
+                "secondary": "#b51c00",
+                "error": "#ba1a1a",
+                "outline-variant": "#c4c7c8",
+                "surface-variant": "#e3e2e2",
+                "on-primary": "#ffffff",
+                "surface-container": "#eeeeed",
+                "on-surface": "#1a1c1c",
+                "outline": "#747878",
+                "inverse-on-surface": "#f1f0f0",
+                "surface-container-high": "#e9e8e8",
+                "surface-container-highest": "#e3e2e2",
+                "surface": "#faf9f9",
+                "on-secondary": "#ffffff",
+                "primary": "#5d5f5f",
+                "brand-orange": "#FF5C00"
+              },
+              "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "sm": "0.125rem",
+                "md": "0.25rem",
+                "lg": "0.5rem"
+              },
+              "spacing": {
+                "xs": "4px",
+                "sm": "8px",
+                "md": "16px",
+                "lg": "24px",
+                "xl": "32px",
+                "gutter": "16px",
+                "margin": "12px"
+              },
+              "fontFamily": {
+                "body-md": ["Inter", "sans-serif"],
+                "body": ["Inter", "sans-serif"],
+                "mono-value": ["JetBrains Mono", "monospace"],
+                "mono-label": ["JetBrains Mono", "monospace"],
+                "metadata-sm": ["JetBrains Mono", "monospace"],
+                "mono-display": ["JetBrains Mono", "monospace"],
+                "nav-label": ["JetBrains Mono", "monospace"],
+                "brand": ["Space Grotesk", "sans-serif"]
+              }
+            }
+          }
+        }
+    </script>
 </head>
-<body>
-    <div class="app-container">
-        <!-- Header -->
-        <header class="app-header">
-            <button id="sidebar-toggle" class="header-button" aria-label="Toggle sidebar">
-                <span class="menu-icon">&#9776;</span>
+<body class="bg-surface-bright text-on-surface font-body min-h-screen flex flex-col">
+
+    <!-- Top Header -->
+    <header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-3 h-12 bg-[#F5F5F5] dark:bg-zinc-950 border-b border-zinc-300 dark:border-zinc-800" style="background-color: var(--c-bg2);">
+        <div class="flex items-center gap-3 overflow-hidden">
+            <button id="header-menu-btn" class="hidden h-8 w-8 flex-shrink-0 flex items-center justify-center btn-standard" title="Menu">
+                <span class="material-symbols-outlined text-[16px]" data-icon="menu" style="color: var(--c-body)">menu</span>
             </button>
-            <h1 class="app-title">OBSIDIAN READER</h1>
-            <div id="vault-name" class="vault-name">Loading...</div>
-        </header>
+            <div class="flex items-baseline gap-2 overflow-hidden">
+                <span id="header-title" class="font-black tracking-tighter text-[14px] cursor-pointer hover:opacity-80 transition-opacity truncate max-w-[150px] md:max-w-md" title="Click to rename" style="color: var(--c-body)">OWR - VAULT</span>
+                <span id="header-datetime" class="font-mono text-[10px] uppercase hidden flex-shrink-0" style="color: var(--c-body); opacity: 0.6;"></span>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <span id="save-indicator" class="font-mono text-[11px] tracking-widest uppercase text-brand-orange hidden">[MODIFIED]</span>
+            <button id="header-config-btn" class="hidden h-8 w-8 flex-shrink-0 flex items-center justify-center btn-standard" title="Configuration">
+                <span class="material-symbols-outlined text-[16px]" style="color: var(--c-body)">settings</span>
+            </button>
+            <button id="preview-toggle" class="hidden h-8 w-8 flex-shrink-0 flex items-center justify-center btn-standard" title="Toggle Preview">
+                <span class="material-symbols-outlined text-[16px]" data-icon="visibility" id="preview-icon" style="color: var(--c-body)">visibility</span>
+            </button>
+        </div>
+    </header>
 
-        <!-- Mobile Overlay -->
-        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+    <!-- Main Container -->
+    <main class="flex-grow pt-12 w-full flex overflow-hidden mx-auto h-0" style="min-height: calc(100dvh - 48px);">
+        
+        <!-- View: HOME (Combined Home & Files) -->
+        <div id="view-home" class="view-panel w-full p-4 md:px-8 overflow-y-auto h-full pb-20 max-w-[1400px] mx-auto">
+            <!-- Search Field (Standardized) -->
+            <div class="mb-lg w-full">
+                <div class="flex-grow flex items-center btn-standard h-10 px-3 w-full" style="justify-content: flex-start; cursor: text;">
+                    <span class="material-symbols-outlined text-[18px] mr-2" style="color: var(--c-body); opacity: 0.5;">search</span>
+                    <input type="text" id="home-search" class="w-full bg-transparent border-none outline-none font-mono text-sm uppercase focus:ring-0 px-2 py-0" placeholder="SEARCH..." style="color: var(--c-body);">
+                </div>
+            </div>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Sidebar -->
-            <aside id="sidebar" class="sidebar">
-                <button id="sidebar-close" class="sidebar-close" aria-label="Close sidebar">
-                    <span class="close-icon">&#215;</span>
-                </button>
-                <div class="sidebar-content">
-                    <div class="search-container">
-                        <input type="text" id="search-input" placeholder="Search files..." class="search-input">
-                        <div id="search-results-overlay" class="search-results-overlay"></div>
+            <div class="flex flex-col md:flex-row gap-8 w-full">
+                <!-- FILES (Left) -->
+                <div class="w-full md:w-1/3 flex flex-col order-2 md:order-1">
+                    <div class="flex items-center justify-between mb-sm border-b border-outline-variant pb-2">
+                        <div class="flex items-center gap-2">
+                            <h2 class="font-mono-label text-sm uppercase">Files</h2>
+                        </div>
+                        <button id="nav-new-file" class="px-3 py-1 flex items-center justify-center gap-1 mechanical-button rounded-sm text-[10px] font-bold uppercase hover:opacity-90" style="background-color: var(--c-accent); color: #fff;">
+                            <span class="material-symbols-outlined text-[14px]">add</span> NEW_FILE
+                        </button>
                     </div>
-                    <div id="file-tree" class="file-tree"></div>
-                </div>
-                <div id="search-dismiss-layer" class="search-dismiss-layer"></div>
-                <div id="sidebar-resizer" class="sidebar-resizer">
-                    <div class="resizer-handle"></div>
-                </div>
-            </aside>
-
-            <!-- Editor Area -->
-            <main class="editor-area">
-                <div class="editor-header">
-                    <div id="current-file" class="current-file">No file selected</div>
-                    <div id="save-status" class="save-status"></div>
-                    <button id="preview-toggle" class="preview-toggle" aria-label="Toggle preview">PREV</button>
-                </div>
-                <div class="editor-body">
-                    <div class="editor-container">
-                        <div class="editor-prompt">&gt; </div>
-                        <textarea id="editor" class="editor" placeholder="Select a file to edit..." spellcheck="false"></textarea>
+                    <div class="bg-white border border-outline-variant p-4 shadow-sm min-h-[300px] flex-grow">
+                        <div id="file-tree" class="font-mono text-sm">
+                            <!-- Populated via JS -->
+                        </div>
                     </div>
-                    <div id="preview-pane" class="preview-pane hidden"></div>
                 </div>
-                <div class="editor-container">
-                    <div class="editor-prompt">&gt; </div>
-                    <textarea id="editor" class="editor" placeholder="Select a file to edit..." spellcheck="false"></textarea>
+
+                <!-- RECENT ARTIFACTS (Right) -->
+                <div class="w-full md:w-2/3 flex flex-col order-1 md:order-2">
+                    <div class="flex items-center justify-between mb-sm border-b border-outline-variant pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 bg-brand-orange rounded-sm"></span>
+                            <h2 class="font-mono-label text-sm uppercase">Recent_Artifacts</h2>
+                        </div>
+                    </div>
+                    <div id="recent-files-grid" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <!-- Populated via JS -->
+                    </div>
                 </div>
-            </main>
+            </div>
         </div>
 
-        <!-- Status Bar -->
-        <footer class="status-bar">
-            <span class="terminal-prompt">$</span>
-            <span class="terminal-command">cat</span>
-            <span id="status-text" class="status-text"> Ready</span>
-        </footer>
+        <!-- View: READER -->
+        <div id="view-reader" class="view-panel w-full h-full flex hidden overflow-hidden relative">
+            <!-- Sidebar Drawer -->
+            <div id="reader-sidebar" class="sidebar absolute md:relative z-40 bg-surface-container-low border-r border-outline-variant h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex-shrink-0 w-3/4 md:w-[280px] flex flex-col md:hidden">
+                <div class="p-4 flex flex-col h-full">
+                    <!-- Header with Home and Search -->
+                    <div class="flex items-center gap-2 mb-4">
+                        <button id="sidebar-home-btn" class="h-8 w-8 flex-shrink-0 flex items-center justify-center btn-standard" title="Home">
+                            <span class="material-symbols-outlined text-[16px]" style="color: var(--c-body)">home</span>
+                        </button>
+                        <div class="flex-grow flex items-center btn-standard h-8 px-2" style="justify-content: flex-start; cursor: text;">
+                            <span class="material-symbols-outlined text-[14px]" style="color: var(--c-body); opacity: 0.5;">search</span>
+                            <input type="text" id="sidebar-search" class="w-full bg-transparent border-none outline-none font-mono text-[12px] uppercase focus:ring-0 px-2 py-0" placeholder="SEARCH..." style="color: var(--c-body);">
+                        </div>
+                        <button id="sidebar-config-btn" class="h-8 w-8 flex-shrink-0 flex items-center justify-center btn-standard" title="Configuration">
+                            <span class="material-symbols-outlined text-[16px]" style="color: var(--c-body)">settings</span>
+                        </button>
+                    </div>
+
+                    <div class="overflow-y-auto flex-grow bg-white border border-outline-variant p-2 shadow-sm" id="reader-file-tree">
+                        <!-- Populated via JS -->
+                    </div>
+                    
+                    <!-- Sidebar New File Button -->
+                    <div class="mt-4 flex-shrink-0">
+                        <button id="sidebar-new-file" class="w-full px-3 py-2 flex items-center justify-center gap-1 mechanical-button rounded-sm text-[10px] font-bold uppercase hover:opacity-90" style="background-color: var(--c-accent); color: #fff;">
+                            <span class="material-symbols-outlined text-[14px]">add</span> NEW_FILE
+                        </button>
+                    </div>
+                </div>
+                <div id="sidebar-resizer" class="hidden md:block absolute right-0 top-0 w-[4px] bg-zinc-200/50 hover:bg-brand-orange h-full cursor-ew-resize z-50"></div>
+            </div>
+            
+            <!-- Mobile Overlay -->
+            <div id="sidebar-overlay" class="hidden absolute inset-0 bg-black bg-opacity-50 z-30 transition-opacity md:hidden"></div>
+
+            <!-- Editor / Preview Area -->
+            <div id="reading-area" class="flex-grow flex flex-col bg-surface-bright overflow-y-auto relative w-full h-full">
+                <!-- Editor Wrapper -->
+                <div id="editor-container" class="relative w-full max-w-[1000px] mx-auto bg-surface-bright pb-32 flex-grow h-auto min-h-full">
+                    <!-- Backdrop pushes container height -->
+                    <div id="editor-backdrop" class="w-full p-4 md:p-8 whitespace-pre-wrap break-words font-mono-value text-[15px] leading-relaxed z-0 min-h-[500px]"></div>
+                    <!-- Textarea overlays exactly -->
+                    <textarea id="editor" class="absolute top-0 left-0 w-full h-full p-4 md:p-8 resize-none outline-none font-mono-value text-[15px] leading-relaxed bg-transparent z-10 border-none caret-brand-orange overflow-hidden" spellcheck="false" placeholder="Select a file to edit..."></textarea>
+                </div>
+                
+                <div id="preview-pane" class="overflow-y-auto p-4 md:p-8 hidden font-mono-value text-[15px] leading-relaxed bg-surface-bright text-zinc-900 min-h-full max-w-[1000px] mx-auto w-full pb-32">
+                    <!-- Preview content -->
+                </div>
+            </div>
+        </div>
+
+        <!-- View: CONFIG -->
+        <div id="view-config" class="view-panel w-full p-4 md:px-8 overflow-y-auto h-full pb-20 max-w-[800px] mx-auto hidden">
+            <h2 class="font-mono-value text-2xl font-bold mb-6 uppercase tracking-tighter text-zinc-900 border-b border-outline-variant pb-2">Configuration</h2>
+            <div class="bg-white border border-outline-variant p-6 shadow-sm mb-6">
+                <p class="font-mono text-sm text-zinc-600 mb-6 border-b border-zinc-200 pb-4">Adjust visual settings for the interface and reader.</p>
+                
+                <div class="space-y-6">
+                    <div class="flex items-center justify-between">
+                        <span class="font-mono-label text-xs uppercase font-bold text-zinc-800">Active Vault</span>
+                        <select id="config-vault" class="border border-zinc-300 rounded-sm font-mono text-xs p-1 outline-none focus:ring-1 focus:ring-brand-orange bg-surface-bright w-full md:w-48">
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <span class="font-mono-label text-xs uppercase font-bold text-zinc-800">Theme Palette</span>
+                        <select id="config-theme" class="border border-zinc-300 rounded-sm font-mono text-xs p-1 outline-none focus:ring-1 focus:ring-brand-orange bg-surface-bright w-full md:w-48">
+                            <option value="light">Light (K.O.II)</option>
+                            <option value="neon">Neon Cyberpunk</option>
+                            <option value="vscode">VS Code Dark+</option>
+                            <option value="github">GitHub Light</option>
+                            <option value="monokai">Monokai</option>
+                            <option value="solarized">Solarized Dark</option>
+                            <option value="dracula">Dracula</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <span class="font-mono-label text-xs uppercase font-bold text-zinc-800">Typography / Font</span>
+                        <select id="config-font" class="border border-zinc-300 rounded-sm font-mono text-xs p-1 outline-none focus:ring-1 focus:ring-brand-orange bg-surface-bright w-full md:w-48">
+                            <option value="font-mono-value">JetBrains Mono (Default)</option>
+                            <option value="font-sans">Space Grotesk</option>
+                            <option value="font-body">Inter</option>
+                            <option value="font-mulish">Mulish</option>
+                            <option value="font-courier">Courier New</option>
+                            <option value="font-fira">Fira Code</option>
+                            <option value="font-roboto">Roboto Mono</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-between border-b border-zinc-200 pb-6">
+                        <span class="font-mono-label text-xs uppercase font-bold text-zinc-800">Text Size</span>
+                        <select id="config-size" class="border border-zinc-300 rounded-sm font-mono text-xs p-1 outline-none focus:ring-1 focus:ring-brand-orange bg-surface-bright w-full md:w-48">
+                            <option value="10px">Small (10px)</option>
+                            <option value="14px" selected>Medium (14px)</option>
+                            <option value="18px">Large (18px)</option>
+                        </select>
+                    </div>
+
+                    <!-- Custom Colors Section -->
+                    <div>
+                        <h3 class="font-mono-label text-xs uppercase font-bold text-zinc-800 mb-4">Custom Color Overrides</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex items-center justify-between bg-zinc-50 p-2 border border-zinc-200 rounded-sm">
+                                <span class="font-mono text-[11px] text-zinc-700">Background</span>
+                                <input type="color" id="config-color-bg" value="#faf9f9" class="w-6 h-6 border-none p-0 cursor-pointer bg-transparent">
+                            </div>
+                            <div class="flex items-center justify-between bg-zinc-50 p-2 border border-zinc-200 rounded-sm">
+                                <span class="font-mono text-[11px] text-zinc-700">Body Text</span>
+                                <input type="color" id="config-color-body" value="#1a1c1c" class="w-6 h-6 border-none p-0 cursor-pointer bg-transparent">
+                            </div>
+                            <div class="flex items-center justify-between bg-zinc-50 p-2 border border-zinc-200 rounded-sm">
+                                <span class="font-mono text-[11px] text-zinc-700">Header Text</span>
+                                <input type="color" id="config-color-header" value="#ff5c00" class="w-6 h-6 border-none p-0 cursor-pointer bg-transparent">
+                            </div>
+                            <div class="flex items-center justify-between bg-zinc-50 p-2 border border-zinc-200 rounded-sm">
+                                <span class="font-mono text-[11px] text-zinc-700">Code Background</span>
+                                <input type="color" id="config-color-codebg" value="#e4e4e7" class="w-6 h-6 border-none p-0 cursor-pointer bg-transparent">
+                            </div>
+                            <div class="flex items-center justify-between bg-zinc-50 p-2 border border-zinc-200 rounded-sm">
+                                <span class="font-mono text-[11px] text-zinc-700">Code Text</span>
+                                <input type="color" id="config-color-codetext" value="#e01e5a" class="w-6 h-6 border-none p-0 cursor-pointer bg-transparent">
+                            </div>
+                            <div class="flex items-center justify-between bg-zinc-50 p-2 border border-zinc-200 rounded-sm">
+                                <span class="font-mono text-[11px] text-zinc-700">Menu Background</span>
+                                <input type="color" id="config-color-bg2" value="#f5f5f5" class="w-6 h-6 border-none p-0 cursor-pointer bg-transparent">
+                            </div>
+                            <div class="flex items-center justify-between bg-zinc-50 p-2 border border-zinc-200 rounded-sm">
+                                <span class="font-mono text-[11px] text-zinc-700">Filler Background</span>
+                                <input type="color" id="config-color-bgfiller" value="#ffffff" class="w-6 h-6 border-none p-0 cursor-pointer bg-transparent">
+                            </div>
+                            <div class="flex items-center justify-between bg-zinc-50 p-2 border border-zinc-200 rounded-sm">
+                                <span class="font-mono text-[11px] text-zinc-700">Accent Elements</span>
+                                <input type="color" id="config-color-accent" value="#ff5c00" class="w-6 h-6 border-none p-0 cursor-pointer bg-transparent">
+                            </div>
+                            <div class="flex items-center justify-between bg-zinc-50 p-2 border border-zinc-200 rounded-sm">
+                                <span class="font-mono text-[11px] text-zinc-700">Standard Buttons</span>
+                                <input type="color" id="config-color-btn" value="#ffffff" class="w-6 h-6 border-none p-0 cursor-pointer bg-transparent">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-3">
+                <button id="config-cancel-btn" class="px-4 py-2 bg-stone-200 text-zinc-800 font-mono-label text-[11px] font-bold uppercase rounded-sm hover:bg-stone-300 transition-colors">
+                    Cancel
+                </button>
+                <button id="config-save-btn" class="px-4 py-2 bg-brand-orange text-white font-mono-label text-[11px] font-bold uppercase rounded-sm shadow-sm hover:bg-orange-600 transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">save</span> Save Settings
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="hidden fixed bg-white border border-zinc-300 shadow-lg py-1 z-[100] min-w-[150px] font-mono-label text-[11px] rounded-sm uppercase">
+        <button id="cm-open" class="w-full text-left px-4 py-2 hover:bg-stone-100 flex items-center gap-2 text-zinc-800"><span class="material-symbols-outlined text-[14px]">open_in_new</span> Open</button>
+        <button id="cm-rename" class="w-full text-left px-4 py-2 hover:bg-stone-100 flex items-center gap-2 text-zinc-800"><span class="material-symbols-outlined text-[14px]">edit</span> Rename / Move</button>
+        <div class="border-b border-zinc-200 my-1"></div>
+        <button id="cm-delete" class="w-full text-left px-4 py-2 hover:bg-red-50 flex items-center gap-2 text-red-600"><span class="material-symbols-outlined text-[14px]">delete</span> Delete</button>
+    </div>
+
+    <!-- New File Modal -->
+    <div id="new-file-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white border-2 border-zinc-800 p-6 w-full max-w-md shadow-[4px_4px_0_0_rgba(255,92,0,1)] rounded-sm">
+            <h2 class="font-mono-value text-xl font-bold mb-2 uppercase tracking-tighter text-zinc-900">CREATE_FILE</h2>
+            <p class="font-mono-label text-[10px] text-zinc-500 mb-4 uppercase">Target Path (e.g. docs/note.md)</p>
+            <input type="text" id="new-file-path" class="w-full border border-zinc-400 p-2 font-mono text-sm mb-4 outline-none focus:border-brand-orange" placeholder="_">
+            <p id="new-file-error" class="text-red-500 text-xs font-mono mb-4 hidden"></p>
+            <div class="flex justify-end gap-2">
+                <button id="new-file-cancel" class="px-4 py-2 border border-zinc-400 font-mono-label text-[10px] hover:bg-zinc-100">CANCEL</button>
+                <button id="new-file-create" class="px-4 py-2 bg-zinc-900 text-white font-mono-label text-[10px] hover:bg-zinc-800">EXECUTE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rename File Modal -->
+    <div id="rename-file-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white border-2 border-zinc-800 p-6 w-full max-w-md shadow-[4px_4px_0_0_rgba(255,92,0,1)] rounded-sm">
+            <h2 class="font-mono-value text-xl font-bold mb-2 uppercase tracking-tighter text-zinc-900">RENAME_FILE</h2>
+            <p class="font-mono-label text-[10px] text-zinc-500 mb-4 uppercase">Update the full path below to rename or move</p>
+            <input type="text" id="rename-file-path" class="w-full border border-zinc-400 p-2 font-mono text-sm mb-4 outline-none focus:border-brand-orange" placeholder="_">
+            <p id="rename-file-error" class="text-red-500 text-xs font-mono mb-4 hidden"></p>
+            <div class="flex justify-end gap-2">
+                <button id="rename-file-cancel" class="px-4 py-2 border border-zinc-400 font-mono-label text-[10px] hover:bg-zinc-100">CANCEL</button>
+                <button id="rename-file-execute" class="px-4 py-2 bg-zinc-900 text-white font-mono-label text-[10px] hover:bg-zinc-800">EXECUTE</button>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>
