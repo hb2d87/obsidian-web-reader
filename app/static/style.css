@@ -1,61 +1,54 @@
+/* OWR Design System — VS Code / Obsidian inspired color model */
 :root {
     --brand-orange: #FF5C00;
-    --c-bg: #faf9f9;
-    --c-body: #1a1c1c;
-    --c-header: #ff5c00;
-    --c-codebg: #e4e4e7;
-    --c-codetext: #e01e5a;
-    --c-bg2: #f5f5f5;
-    --c-bgfiller: #ffffff;
-    --c-accent: #ff5c00;
-    --c-btn: #ffffff;
+    /* Simplified color model: bg, text, sidebar, accent */
+    --c-bg: #ffffff;        /* Editor / main background */
+    --c-body: #1a1c1c;      /* Primary text */
+    --c-sidebar: #f5f5f5;   /* Sidebar, header, menu surfaces */
+    --c-accent: #ff5c00;    /* Buttons, highlights, active states */
+    --c-header: #ff5c00;    /* Heading color in markdown */
+    --c-codebg: #e4e4e7;    /* Code block background */
+    --c-codetext: #e01e5a;  /* Code text color */
     --text-size: 14px;
 }
 
 body {
-    background-color: var(--c-bgfiller) !important;
+    background-color: var(--c-bg) !important;
     color: var(--c-body) !important;
 }
 
+/* Map tailwind utility classes to CSS vars */
 .bg-surface-bright { background-color: var(--c-bg) !important; }
-.bg-surface-container-low { background-color: var(--c-bg2) !important; }
-.bg-\[\#F5F5F5\] { background-color: var(--c-bg2) !important; }
+.bg-surface-container-low { background-color: var(--c-sidebar) !important; }
+.bg-\[\#F5F5F5\] { background-color: var(--c-sidebar) !important; }
 .text-zinc-900, .text-zinc-800, .text-zinc-700 { color: var(--c-body) !important; }
 
+/* Buttons derive from accent */
 .btn-standard {
-    background-color: var(--c-btn);
-    border: 1px solid rgba(0,0,0,0.15);
+    background-color: var(--c-sidebar);
+    border: 1px solid rgba(0,0,0,0.12);
     border-radius: 2px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     transition: all 0.15s;
+    color: var(--c-body);
 }
 .btn-standard:hover {
     filter: brightness(0.95);
 }
 
-.lcd-grid {
-    background-image: radial-gradient(circle, #000 1px, transparent 1px);
-    background-size: 3px 3px;
-}
-
 .mechanical-button {
-    box-shadow: 2px 2px 0px #d1d1d1;
+    box-shadow: 2px 2px 0px rgba(0,0,0,0.12);
     transition: transform 0.05s, box-shadow 0.05s;
 }
-
 .mechanical-button:active {
-    box-shadow: 0px 0px 0px #d1d1d1;
+    box-shadow: 0px 0px 0px rgba(0,0,0,0.12);
     transform: translate(2px, 2px);
 }
 
 .active-nav {
-    background-color: #18181b !important; /* zinc-900 */
+    background-color: var(--c-accent) !important;
     color: white !important;
     border-color: transparent !important;
-}
-
-.active-nav .text-zinc-500 {
-    color: white !important;
 }
 
 /* File Tree Styles */
@@ -66,54 +59,42 @@ body {
     align-items: center;
     gap: 8px;
     border-left: 2px solid transparent;
+    color: var(--c-body);
 }
-
 .file-item:hover {
-    background-color: var(--surface-container-low, #f4f3f3);
+    background-color: color-mix(in srgb, var(--c-sidebar) 80%, var(--c-accent) 20%);
 }
-
 .file-item.selected {
-    background-color: var(--surface-container, #eeeeed);
-    border-left-color: #FF5C00;
+    background-color: color-mix(in srgb, var(--c-sidebar) 70%, var(--c-accent) 30%);
+    border-left-color: var(--c-accent);
     font-weight: 600;
 }
-
 .file-item.selected::after {
     content: '';
     display: block;
     width: 6px;
     height: 6px;
-    background-color: #FF5C00;
+    background-color: var(--c-accent);
     border-radius: 50%;
     margin-left: auto;
 }
 
 .folder-children {
     padding-left: 16px;
-    border-left: 1px dashed #d4d4d8; /* zinc-300 */
+    border-left: 1px dashed color-mix(in srgb, var(--c-body) 20%, transparent);
     margin-left: 12px;
 }
 
-.folder-icon {
-    font-size: 0.8em;
-    width: 12px;
-    display: inline-block;
-}
-
-.file-icon {
-    font-size: 0.8em;
-    width: 12px;
-    display: inline-block;
-    color: #71717a;
-}
+.folder-icon { font-size: 0.8em; width: 12px; display: inline-block; }
+.file-icon { font-size: 0.8em; width: 12px; display: inline-block; opacity: 0.5; }
 
 /* Editor highlighting */
 #editor {
     color: transparent;
-    caret-color: #FF5C00;
+    caret-color: var(--c-accent);
 }
 #editor::selection {
-    background: rgba(255, 92, 0, 0.2);
+    background: color-mix(in srgb, var(--c-accent) 20%, transparent);
     color: transparent;
 }
 #editor-backdrop {
@@ -122,21 +103,40 @@ body {
 .hl-header { color: var(--c-header); font-weight: bold; }
 .hl-bold { font-weight: bold; color: var(--c-header); }
 .hl-italic { font-style: italic; opacity: 0.8; }
-.hl-list { color: var(--brand-orange); }
-.hl-codeblock { background-color: var(--c-codebg); border-radius: 2px; color: var(--c-codetext); }
-.hl-code { background-color: var(--c-codebg); padding: 0 4px; border-radius: 2px; color: var(--c-codetext); }
+.hl-list { color: var(--c-accent); }
+.hl-codeblock {
+    background-color: var(--c-codebg);
+    border-radius: 2px;
+    color: var(--c-codetext);
+    display: block;
+    padding: 8px 12px;
+    margin: 4px 0;
+}
+.hl-code {
+    background-color: var(--c-codebg);
+    padding: 1px 5px;
+    border-radius: 2px;
+    color: var(--c-codetext);
+}
 
 /* Markdown Preview Styles */
-#preview-pane h1 { font-size: 2.5em; font-weight: 800; margin-bottom: 0.5em; color: var(--c-header); }
-#preview-pane h2 { font-size: 2em; font-weight: 700; margin-top: 1em; margin-bottom: 0.5em; border-bottom: 1px solid rgba(0,0,0,0.1); color: var(--c-header); }
-#preview-pane h3 { font-size: 1.5em; font-weight: 600; margin-top: 1em; margin-bottom: 0.5em; color: var(--c-header); }
-#preview-pane h4 { font-size: 1.25em; font-weight: 600; margin-top: 1em; margin-bottom: 0.5em; color: var(--c-header); }
-#preview-pane h5 { font-size: 1.1em; font-weight: 600; margin-top: 1em; margin-bottom: 0.5em; color: var(--c-header); }
-#preview-pane h6 { font-size: 1em; font-weight: 600; margin-top: 1em; margin-bottom: 0.5em; text-transform: uppercase; color: var(--c-header); }
-#preview-pane p { margin-bottom: 1em; color: var(--c-body); }
-#preview-pane ul { list-style-type: disc; margin-left: 2em; margin-bottom: 1em; color: var(--c-body); }
-#preview-pane ol { list-style-type: decimal; margin-left: 2em; margin-bottom: 1em; color: var(--c-body); }
-#preview-pane code { font-family: 'JetBrains Mono', monospace; background: var(--c-codebg); padding: 2px 4px; border-radius: 2px; font-size: 0.9em; color: var(--c-codetext); }
-#preview-pane pre { background: var(--c-codebg); color: var(--c-codetext); padding: 1em; overflow-x: auto; margin-bottom: 1em; border-radius: 2px; }
+#preview-pane h1 { font-size: 2.2em; font-weight: 800; margin-bottom: 0.4em; color: var(--c-header); }
+#preview-pane h2 { font-size: 1.7em; font-weight: 700; margin-top: 0.8em; margin-bottom: 0.4em; border-bottom: 1px solid color-mix(in srgb, var(--c-body) 10%, transparent); color: var(--c-header); }
+#preview-pane h3 { font-size: 1.4em; font-weight: 600; margin-top: 0.8em; margin-bottom: 0.3em; color: var(--c-header); }
+#preview-pane h4 { font-size: 1.2em; font-weight: 600; margin-top: 0.6em; margin-bottom: 0.3em; color: var(--c-header); }
+#preview-pane h5 { font-size: 1.05em; font-weight: 600; margin-top: 0.6em; margin-bottom: 0.2em; color: var(--c-header); }
+#preview-pane h6 { font-size: 1em; font-weight: 600; margin-top: 0.6em; margin-bottom: 0.2em; text-transform: uppercase; color: var(--c-header); }
+#preview-pane p { margin-bottom: 0.6em; color: var(--c-body); line-height: 1.6; }
+#preview-pane ul { list-style-type: disc; margin-left: 2em; margin-bottom: 0.6em; color: var(--c-body); }
+#preview-pane ul li { margin-bottom: 0.15em; }
+#preview-pane ol { list-style-type: decimal; margin-left: 2em; margin-bottom: 0.6em; color: var(--c-body); }
+#preview-pane ol li { margin-bottom: 0.15em; }
+#preview-pane code { font-family: 'JetBrains Mono', monospace; background: var(--c-codebg); padding: 2px 5px; border-radius: 2px; font-size: 0.9em; color: var(--c-codetext); }
+#preview-pane pre { background: var(--c-codebg); color: var(--c-codetext); padding: 1em; overflow-x: auto; margin-bottom: 0.8em; border-radius: 2px; }
 #preview-pane pre code { background: transparent; color: inherit; padding: 0; }
-#preview-pane blockquote { border-left: 4px solid var(--c-header); padding-left: 1em; opacity: 0.8; margin-left: 0; margin-bottom: 1em; }
+#preview-pane blockquote { border-left: 4px solid var(--c-accent); padding-left: 1em; opacity: 0.8; margin-left: 0; margin-bottom: 0.8em; }
+
+/* Android safe-area for sidebar bottom button */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    #reader-sidebar .p-4 { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+}

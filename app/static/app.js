@@ -296,31 +296,41 @@ class ObsidianReader {
                 const folderPath = file.path.substring(0, file.path.lastIndexOf('/'));
 
                 const card = document.createElement('div');
-                card.className = 'border border-outline-variant p-3 bg-surface-container hover:bg-surface-dim transition-colors cursor-pointer file-card shadow-sm rounded-sm mechanical-button h-32 flex flex-col';
+                card.className = 'border border-outline-variant p-3 hover:opacity-90 transition-colors cursor-pointer file-card shadow-sm rounded-sm mechanical-button h-28 flex flex-col';
+                card.style.backgroundColor = 'var(--c-sidebar)';
                 card.dataset.path = file.path;
                 
                 const inner = document.createElement('div');
                 inner.className = 'flex-grow flex flex-col overflow-hidden';
                 
+                // Row 1: Title (left) + Timestamp (right)
+                const topRow = document.createElement('div');
+                topRow.className = 'flex items-center justify-between gap-2 mb-1';
+                const h3 = document.createElement('h3');
+                h3.className = 'font-mono-value font-bold text-sm truncate';
+                h3.style.color = 'var(--c-body)';
+                h3.textContent = title;
+                const ts = document.createElement('span');
+                ts.className = 'font-mono-label text-[9px] flex-shrink-0 opacity-50';
+                ts.style.color = 'var(--c-body)';
+                ts.textContent = `${dateStr} ${timeStr}`;
+                topRow.appendChild(h3);
+                topRow.appendChild(ts);
+                inner.appendChild(topRow);
+                
+                // Row 2: Path
                 if (folderPath) {
                     const fp = document.createElement('div');
-                    fp.className = 'font-mono-label text-[9px] text-brand-orange uppercase mb-1 truncate';
+                    fp.className = 'font-mono-label text-[9px] uppercase mb-1 truncate';
+                    fp.style.color = 'var(--c-accent)';
                     fp.textContent = folderPath;
                     inner.appendChild(fp);
                 }
                 
-                const h3 = document.createElement('h3');
-                h3.className = 'font-mono-value font-bold text-on-surface text-md truncate';
-                h3.textContent = title;
-                inner.appendChild(h3);
-                
-                const dateDiv = document.createElement('div');
-                dateDiv.className = 'font-mono-label text-[10px] text-zinc-500 my-1';
-                dateDiv.textContent = `----- ${dateStr} // ${timeStr}`;
-                inner.appendChild(dateDiv);
-                
+                // Row 3: Excerpt
                 const p = document.createElement('p');
-                p.className = 'font-body text-xs text-on-surface-variant mt-1 line-clamp-3 leading-snug break-words whitespace-normal';
+                p.className = 'font-body text-xs mt-1 line-clamp-2 leading-snug break-words whitespace-normal opacity-60';
+                p.style.color = 'var(--c-body)';
                 p.textContent = file.excerpt || '';
                 inner.appendChild(p);
                 
@@ -546,7 +556,7 @@ class ObsidianReader {
             .replace(/(\*\*.*?\*\*)/g, '<span class="hl-bold">$1</span>')
             .replace(/(\*.*?\*)/g, '<span class="hl-italic">$1</span>')
             .replace(/^([\-\*\+]\s+)/gm, '<span class="hl-list">$1</span>')
-            .replace(/```([\s\S]*?)```/g, '<span class="hl-codeblock">```$1```</span>')
+            .replace(/(^```[\s\S]*?^```)/gm, '<span class="hl-codeblock">$1</span>')
             .replace(/`([^`\n]+)`/g, '<span class="hl-code">`$1`</span>');
             
         // Extra <br> allows proper scrolling for the last empty line
@@ -832,21 +842,19 @@ class ObsidianReader {
         }
     }
 
-    // Config Methods
+    // Config Methods — simplified VS Code / Obsidian model
     populateConfigUI() {
         document.getElementById('config-vault').value = this.activeVault;
         document.getElementById('config-theme').value = this.themeConfig.theme || 'light';
         document.getElementById('config-font').value = this.themeConfig.font || 'font-mono-value';
         document.getElementById('config-size').value = this.themeConfig.size || '14px';
-        document.getElementById('config-color-bg').value = this.themeConfig.bg || '#faf9f9';
+        document.getElementById('config-color-bg').value = this.themeConfig.bg || '#ffffff';
         document.getElementById('config-color-body').value = this.themeConfig.body || '#1a1c1c';
+        document.getElementById('config-color-sidebar').value = this.themeConfig.sidebar || '#f5f5f5';
+        document.getElementById('config-color-accent').value = this.themeConfig.accent || '#ff5c00';
         document.getElementById('config-color-header').value = this.themeConfig.header || '#ff5c00';
         document.getElementById('config-color-codebg').value = this.themeConfig.codebg || '#e4e4e7';
         document.getElementById('config-color-codetext').value = this.themeConfig.codetext || '#e01e5a';
-        document.getElementById('config-color-bg2').value = this.themeConfig.bg2 || '#f5f5f5';
-        document.getElementById('config-color-bgfiller').value = this.themeConfig.bgfiller || '#ffffff';
-        document.getElementById('config-color-accent').value = this.themeConfig.accent || '#ff5c00';
-        document.getElementById('config-color-btn').value = this.themeConfig.btn || '#ffffff';
     }
 
     saveConfig() {
@@ -859,62 +867,58 @@ class ObsidianReader {
             size: document.getElementById('config-size').value,
             bg: document.getElementById('config-color-bg').value,
             body: document.getElementById('config-color-body').value,
+            sidebar: document.getElementById('config-color-sidebar').value,
+            accent: document.getElementById('config-color-accent').value,
             header: document.getElementById('config-color-header').value,
             codebg: document.getElementById('config-color-codebg').value,
-            codetext: document.getElementById('config-color-codetext').value,
-            bg2: document.getElementById('config-color-bg2').value,
-            bgfiller: document.getElementById('config-color-bgfiller').value,
-            accent: document.getElementById('config-color-accent').value,
-            btn: document.getElementById('config-color-btn').value
+            codetext: document.getElementById('config-color-codetext').value
         };
         localStorage.setItem('owr_config', JSON.stringify(this.themeConfig));
         this.applyConfig();
     }
 
     applyThemePreset(theme) {
+        // Simplified: bg, body, sidebar, accent, header, codebg, codetext
         const presets = {
-            light: { bg: '#faf9f9', body: '#1a1c1c', header: '#ff5c00', codebg: '#e4e4e7', codetext: '#e01e5a', bg2: '#f5f5f5', bgfiller: '#ffffff', accent: '#ff5c00', btn: '#ffffff' },
-            neon: { bg: '#0b0c10', body: '#66fcf1', header: '#ff003c', codebg: '#1f2833', codetext: '#45a29e', bg2: '#050608', bgfiller: '#000000', accent: '#ff003c', btn: '#1f2833' },
-            vscode: { bg: '#1e1e1e', body: '#d4d4d4', header: '#569cd6', codebg: '#2d2d2d', codetext: '#ce9178', bg2: '#252526', bgfiller: '#1e1e1e', accent: '#007acc', btn: '#333333' },
-            github: { bg: '#ffffff', body: '#24292f', header: '#0969da', codebg: '#f6f8fa', codetext: '#24292f', bg2: '#f6f8fa', bgfiller: '#ffffff', accent: '#2da44e', btn: '#f6f8fa' },
-            monokai: { bg: '#272822', body: '#f8f8f2', header: '#f92672', codebg: '#3e3d32', codetext: '#e6db74', bg2: '#1e1f1c', bgfiller: '#272822', accent: '#a6e22e', btn: '#3e3d32' },
-            solarized: { bg: '#002b36', body: '#839496', header: '#cb4b16', codebg: '#073642', codetext: '#2aa198', bg2: '#00212b', bgfiller: '#002b36', accent: '#b58900', btn: '#073642' },
-            dracula: { bg: '#282a36', body: '#f8f8f2', header: '#bd93f9', codebg: '#44475a', codetext: '#f1fa8c', bg2: '#21222c', bgfiller: '#282a36', accent: '#50fa7b', btn: '#44475a' }
+            light:     { bg: '#ffffff', body: '#1a1c1c', sidebar: '#f5f5f5', accent: '#ff5c00', header: '#ff5c00', codebg: '#e4e4e7', codetext: '#e01e5a' },
+            neon:      { bg: '#0a0e12', body: '#66fcf1', sidebar: '#0b0c10', accent: '#ff003c', header: '#ff003c', codebg: '#1f2833', codetext: '#45a29e' },
+            vscode:    { bg: '#1e1e1e', body: '#d4d4d4', sidebar: '#252526', accent: '#007acc', header: '#569cd6', codebg: '#2d2d2d', codetext: '#ce9178' },
+            github:    { bg: '#ffffff', body: '#24292f', sidebar: '#f6f8fa', accent: '#2da44e', header: '#0969da', codebg: '#f6f8fa', codetext: '#24292f' },
+            monokai:   { bg: '#272822', body: '#f8f8f2', sidebar: '#1e1f1c', accent: '#a6e22e', header: '#f92672', codebg: '#3e3d32', codetext: '#e6db74' },
+            solarized: { bg: '#002b36', body: '#839496', sidebar: '#00212b', accent: '#b58900', header: '#cb4b16', codebg: '#073642', codetext: '#2aa198' },
+            dracula:   { bg: '#282a36', body: '#f8f8f2', sidebar: '#21222c', accent: '#50fa7b', header: '#bd93f9', codebg: '#44475a', codetext: '#f1fa8c' }
         };
         const p = presets[theme];
         if (p) {
             document.getElementById('config-color-bg').value = p.bg;
             document.getElementById('config-color-body').value = p.body;
+            document.getElementById('config-color-sidebar').value = p.sidebar;
+            document.getElementById('config-color-accent').value = p.accent;
             document.getElementById('config-color-header').value = p.header;
             document.getElementById('config-color-codebg').value = p.codebg;
             document.getElementById('config-color-codetext').value = p.codetext;
-            document.getElementById('config-color-bg2').value = p.bg2;
-            document.getElementById('config-color-bgfiller').value = p.bgfiller;
-            document.getElementById('config-color-accent').value = p.accent;
-            document.getElementById('config-color-btn').value = p.btn;
         }
     }
 
     applyConfig() {
         const root = document.documentElement;
-        if (this.themeConfig.bg) root.style.setProperty('--c-bg', this.themeConfig.bg);
-        if (this.themeConfig.body) root.style.setProperty('--c-body', this.themeConfig.body);
-        if (this.themeConfig.header) root.style.setProperty('--c-header', this.themeConfig.header);
-        if (this.themeConfig.codebg) root.style.setProperty('--c-codebg', this.themeConfig.codebg);
-        if (this.themeConfig.codetext) root.style.setProperty('--c-codetext', this.themeConfig.codetext);
-        if (this.themeConfig.bg2) root.style.setProperty('--c-bg2', this.themeConfig.bg2);
-        if (this.themeConfig.bgfiller) root.style.setProperty('--c-bgfiller', this.themeConfig.bgfiller);
-        if (this.themeConfig.accent) root.style.setProperty('--c-accent', this.themeConfig.accent);
-        if (this.themeConfig.btn) root.style.setProperty('--c-btn', this.themeConfig.btn);
+        const c = this.themeConfig;
+        if (c.bg) root.style.setProperty('--c-bg', c.bg);
+        if (c.body) root.style.setProperty('--c-body', c.body);
+        if (c.sidebar) root.style.setProperty('--c-sidebar', c.sidebar);
+        if (c.accent) root.style.setProperty('--c-accent', c.accent);
+        if (c.header) root.style.setProperty('--c-header', c.header);
+        if (c.codebg) root.style.setProperty('--c-codebg', c.codebg);
+        if (c.codetext) root.style.setProperty('--c-codetext', c.codetext);
         
-        if (this.themeConfig.size) {
-            root.style.setProperty('--text-size', this.themeConfig.size);
-            document.getElementById('editor').style.fontSize = this.themeConfig.size;
-            document.getElementById('editor-backdrop').style.fontSize = this.themeConfig.size;
-            document.getElementById('preview-pane').style.fontSize = this.themeConfig.size;
+        if (c.size) {
+            root.style.setProperty('--text-size', c.size);
+            document.getElementById('editor').style.fontSize = c.size;
+            document.getElementById('editor-backdrop').style.fontSize = c.size;
+            document.getElementById('preview-pane').style.fontSize = c.size;
         }
 
-        if (this.themeConfig.font) {
+        if (c.font) {
             const fontMap = {
                 'font-mono-value': '"JetBrains Mono", monospace',
                 'font-sans': '"Space Grotesk", sans-serif',
@@ -924,7 +928,7 @@ class ObsidianReader {
                 'font-fira': '"Fira Code", monospace',
                 'font-roboto': '"Roboto Mono", monospace'
             };
-            const ff = fontMap[this.themeConfig.font];
+            const ff = fontMap[c.font];
             if (ff) {
                 document.getElementById('editor').style.fontFamily = ff;
                 document.getElementById('editor-backdrop').style.fontFamily = ff;
