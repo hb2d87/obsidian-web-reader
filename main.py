@@ -1,12 +1,26 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-from typing import List, Dict, Any
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
+from pydantic import BaseModel, validator
+from typing import List
 import os
-import json
 import shutil
 
-app = FastAPI()
+MAX_CONTENT_SIZE = 10 * 1024 * 1024  # 10 MB
+
+app = FastAPI(docs_url=None, redoc_url=None)  # Disable docs in production
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response: Response = await call_next(request)
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Vault path - will be mounted in container
 VAULT_PATH = "/vault"
@@ -31,10 +45,6 @@ class FileItem(BaseModel):
     is_dir: bool
     mtime: float = 0.0
     children: List['FileItem'] = []
-
-class RenameItem(BaseModel):
-    old_path: str
-    new_path: str
 
 class RenameItem(BaseModel):
     old_path: str
@@ -91,7 +101,7 @@ async def get_vaults():
                 full_item = os.path.join(VAULT_PATH, item)
                 if os.path.isdir(full_item) and not item.startswith('.'):
                     vaults.append(item)
-    except:
+    except Exception:
         pass
     return {"vaults": vaults}
 
@@ -228,6 +238,13 @@ async def create_file(req: CreateFileRequest, request: Request):
 class SaveFileRequest(BaseModel):
     path: str
     content: str
+
+    @validator('content')
+    @classmethod
+    def validate_content_size(cls, v):
+        if len(v) > MAX_CONTENT_SIZE:
+            raise ValueError(f'Content exceeds maximum size of {MAX_CONTENT_SIZE} bytes')
+        return v
 
 @app.put("/api/file")
 async def save_file(req: SaveFileRequest, request: Request):

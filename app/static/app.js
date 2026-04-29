@@ -22,8 +22,9 @@ class ObsidianReader {
 
     // Helper to send vault header
     async fetchApi(url, options = {}) {
-        options.headers = options.headers || {};
-        options.headers['X-Vault-Path'] = this.activeVault;
+        options.headers = Object.assign({}, options.headers || {}, {
+            'X-Vault-Path': this.activeVault
+        });
         return fetch(url, options);
     }
 
@@ -233,20 +234,20 @@ class ObsidianReader {
             menuBtn.classList.remove('hidden');
             previewBtn.classList.remove('hidden');
             configBtn.classList.add('hidden');
+            document.getElementById('header-datetime').classList.remove('hidden');
             await this.loadFileTree('reader-file-tree');
         } else {
             menuBtn.classList.add('hidden');
             previewBtn.classList.add('hidden');
+            document.getElementById('header-datetime').classList.add('hidden');
             if (view === 'home') {
                 configBtn.classList.remove('hidden');
-                document.getElementById('header-datetime').classList.add('hidden');
-                await this.loadRecentFiles();
-                await this.loadFileTree('file-tree');
+                await Promise.all([
+                    this.loadRecentFiles(),
+                    this.loadFileTree('file-tree')
+                ]);
             } else if (view === 'config') {
                 configBtn.classList.add('hidden');
-                document.getElementById('header-datetime').classList.add('hidden');
-            } else if (view === 'reader') {
-                document.getElementById('header-datetime').classList.remove('hidden');
             }
             document.getElementById('header-title').textContent = `OWR - ${this.vaultName || 'VAULT'}`;
         }
@@ -297,18 +298,33 @@ class ObsidianReader {
                 const card = document.createElement('div');
                 card.className = 'border border-outline-variant p-3 bg-surface-container hover:bg-surface-dim transition-colors cursor-pointer file-card shadow-sm rounded-sm mechanical-button h-32 flex flex-col';
                 card.dataset.path = file.path;
-                card.innerHTML = `
-                    <div class="flex-grow flex flex-col overflow-hidden">
-                        ${folderPath ? `<div class="font-mono-label text-[9px] text-brand-orange uppercase mb-1 truncate">${folderPath}</div>` : ''}
-                        <h3 class="font-mono-value font-bold text-on-surface text-md truncate">${title}</h3>
-                        <div class="font-mono-label text-[10px] text-zinc-500 my-1">
-                            ----- ${dateStr} // ${timeStr}
-                        </div>
-                        <p class="font-body text-xs text-on-surface-variant mt-1 line-clamp-3 leading-snug break-words whitespace-normal">
-                            ${file.excerpt || ''}
-                        </p>
-                    </div>
-                `;
+                
+                const inner = document.createElement('div');
+                inner.className = 'flex-grow flex flex-col overflow-hidden';
+                
+                if (folderPath) {
+                    const fp = document.createElement('div');
+                    fp.className = 'font-mono-label text-[9px] text-brand-orange uppercase mb-1 truncate';
+                    fp.textContent = folderPath;
+                    inner.appendChild(fp);
+                }
+                
+                const h3 = document.createElement('h3');
+                h3.className = 'font-mono-value font-bold text-on-surface text-md truncate';
+                h3.textContent = title;
+                inner.appendChild(h3);
+                
+                const dateDiv = document.createElement('div');
+                dateDiv.className = 'font-mono-label text-[10px] text-zinc-500 my-1';
+                dateDiv.textContent = `----- ${dateStr} // ${timeStr}`;
+                inner.appendChild(dateDiv);
+                
+                const p = document.createElement('p');
+                p.className = 'font-body text-xs text-on-surface-variant mt-1 line-clamp-3 leading-snug break-words whitespace-normal';
+                p.textContent = file.excerpt || '';
+                inner.appendChild(p);
+                
+                card.appendChild(inner);
                 card.addEventListener('click', () => {
                     this.switchView('reader');
                     this.loadFile(file.path);
@@ -567,8 +583,9 @@ class ObsidianReader {
 
     updateStatus(text) {
         const statusElement = document.getElementById('header-status');
+        if (!statusElement) return;
         statusElement.textContent = text;
-        setTimeout(() => { statusElement.textContent = 'SYS_READY'; }, 3000);
+        setTimeout(() => { statusElement.textContent = ''; }, 3000);
     }
 
     setupAutoSave() {
@@ -670,11 +687,16 @@ class ObsidianReader {
 
     parseInlineMarkdown(text) {
         if (!text) return '';
+        text = this.escapeHtml(text);
         text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
         text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
         text = text.replace(/\*([^*]+?)\*/g, '<em>$1</em>');
         text = text.replace(/_([^_]+?)_/g, '<em>$1</em>');
-        text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+        text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, href) => {
+            const safeHref = href.replace(/["'<>]/g, '');
+            if (safeHref.startsWith('javascript:')) return this.escapeHtml(match);
+            return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+        });
         return text;
     }
 
