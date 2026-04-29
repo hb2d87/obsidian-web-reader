@@ -11,6 +11,7 @@ class ObsidianReader {
     }
 
     async init() {
+        this.setupViewportHeight();
         this.applyConfig();
         this.bindEvents();
         this.setupResize();
@@ -19,6 +20,15 @@ class ObsidianReader {
         this.switchView('home');
         this.setupAutoSave();
         this.connectWebSocket();
+    }
+
+    setupViewportHeight() {
+        const setVh = () => {
+            document.documentElement.style.setProperty('--vh', `${window.innerHeight}px`);
+        };
+        setVh();
+        window.addEventListener('resize', setVh);
+        window.addEventListener('orientationchange', () => setTimeout(setVh, 150));
     }
 
     connectWebSocket() {

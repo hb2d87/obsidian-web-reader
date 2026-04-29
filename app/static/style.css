@@ -17,6 +17,24 @@ body {
     color: var(--c-body) !important;
 }
 
+/* Android Chrome: use JS-set --vh for reliable viewport height */
+html, body { height: 100%; overflow: hidden; }
+#main-container { height: calc(var(--vh, 100vh) - 48px); }
+
+/* Config form selects */
+.config-select {
+    border: 1px solid color-mix(in srgb, var(--c-body) 15%, transparent);
+    border-radius: 2px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 4px 6px;
+    outline: none;
+    background-color: var(--c-bg);
+    color: var(--c-body);
+    width: 100%;
+    max-width: 12rem;
+}
+
 /* Map tailwind utility classes to CSS vars */
 .bg-surface-bright { background-color: var(--c-bg) !important; }
 .bg-surface-container-low { background-color: var(--c-sidebar) !important; }
