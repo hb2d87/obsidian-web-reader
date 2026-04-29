@@ -36,6 +36,14 @@ RUN echo 'server { \
         proxy_read_timeout 30s; \
         proxy_connect_timeout 10s; \
     } \
+    location /ws { \
+        proxy_pass http://127.0.0.1:8000; \
+        proxy_http_version 1.1; \
+        proxy_set_header Upgrade $http_upgrade; \
+        proxy_set_header Connection "upgrade"; \
+        proxy_set_header Host $host; \
+        proxy_read_timeout 86400s; \
+    } \
     location ~ /\. { \
         deny all; \
         return 404; \

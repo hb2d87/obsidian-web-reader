@@ -1,16 +1,86 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from pydantic import BaseModel, validator
-from typing import List
+from typing import List, Set
 import os
 import shutil
+import json
+import asyncio
+import threading
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 MAX_CONTENT_SIZE = 10 * 1024 * 1024  # 10 MB
 
 app = FastAPI(docs_url=None, redoc_url=None)  # Disable docs in production
+
+# --- WebSocket live-sync via watchdog ---
+connected_clients: Set[WebSocket] = set()
+event_loop = None  # Will be set on startup
+
+class VaultEventHandler(FileSystemEventHandler):
+    """Watches the vault directory and pushes change events to all WS clients."""
+    def __init__(self, vault_path: str):
+        self.vault_path = vault_path
+
+    def _make_event(self, event_type: str, src_path: str, dest_path: str = None):
+        rel = os.path.relpath(src_path, self.vault_path)
+        # Skip hidden files/dirs
+        if any(part.startswith('.') and part != '.metadata' for part in rel.split(os.sep)):
+            return None
+        payload = {"type": event_type, "path": rel, "is_dir": os.path.isdir(src_path)}
+        if dest_path:
+            payload["dest"] = os.path.relpath(dest_path, self.vault_path)
+        return payload
+
+    def _broadcast(self, payload):
+        if payload is None or event_loop is None:
+            return
+        asyncio.run_coroutine_threadsafe(_broadcast_event(payload), event_loop)
+
+    def on_created(self, event):
+        self._broadcast(self._make_event("created", event.src_path))
+    def on_modified(self, event):
+        self._broadcast(self._make_event("modified", event.src_path))
+    def on_deleted(self, event):
+        self._broadcast(self._make_event("deleted", event.src_path))
+    def on_moved(self, event):
+        self._broadcast(self._make_event("moved", event.src_path, event.dest_path))
+
+async def _broadcast_event(payload):
+    dead = set()
+    msg = json.dumps(payload)
+    for ws in connected_clients:
+        try:
+            await ws.send_text(msg)
+        except Exception:
+            dead.add(ws)
+    connected_clients.difference_update(dead)
+
+@app.on_event("startup")
+def start_watcher():
+    global event_loop
+    event_loop = asyncio.get_event_loop()
+    vault = os.environ.get("VAULT_PATH", "/vault")
+    if os.path.isdir(vault):
+        handler = VaultEventHandler(vault)
+        observer = Observer()
+        observer.schedule(handler, vault, recursive=True)
+        observer.daemon = True
+        observer.start()
+
+@app.websocket("/ws")
+async def websocket_endpoint(ws: WebSocket):
+    await ws.accept()
+    connected_clients.add(ws)
+    try:
+        while True:
+            await ws.receive_text()  # keep alive; client can send pings
+    except WebSocketDisconnect:
+        connected_clients.discard(ws)
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):

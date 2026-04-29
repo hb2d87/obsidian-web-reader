@@ -60,6 +60,12 @@ body {
     gap: 8px;
     border-left: 2px solid transparent;
     color: var(--c-body);
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+#context-menu button:hover {
+    background-color: color-mix(in srgb, var(--c-accent) 15%, transparent);
 }
 .file-item:hover {
     background-color: color-mix(in srgb, var(--c-sidebar) 80%, var(--c-accent) 20%);

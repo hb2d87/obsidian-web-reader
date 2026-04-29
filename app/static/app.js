@@ -18,6 +18,34 @@ class ObsidianReader {
         await this.loadVaultName();
         this.switchView('home');
         this.setupAutoSave();
+        this.connectWebSocket();
+    }
+
+    connectWebSocket() {
+        const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${proto}//${location.host}/ws`);
+        ws.onmessage = (e) => {
+            try {
+                const evt = JSON.parse(e.data);
+                // Reload trees on any fs event
+                if (this.viewMode === 'home') {
+                    this.loadRecentFiles();
+                    this.loadFileTree('file-tree');
+                } else if (this.viewMode === 'reader') {
+                    this.loadFileTree('reader-file-tree');
+                    // If the currently open file was modified externally, reload it
+                    if (this.currentFile && evt.path === this.currentFile && evt.type === 'modified' && !this.isDirty) {
+                        this.loadFile(this.currentFile);
+                    }
+                    // If current file was deleted, go home
+                    if (this.currentFile && evt.path === this.currentFile && evt.type === 'deleted') {
+                        this.switchView('home');
+                    }
+                }
+            } catch (_) {}
+        };
+        ws.onclose = () => setTimeout(() => this.connectWebSocket(), 3000);
+        ws.onerror = () => ws.close();
     }
 
     // Helper to send vault header
@@ -138,6 +166,14 @@ class ObsidianReader {
             if (this.contextMenuPath) {
                 this.currentFile = this.contextMenuPath;
                 this.showRenameModal();
+            }
+        });
+        document.getElementById('cm-new-here').addEventListener('click', () => {
+            if (this.contextMenuPath) {
+                let folder = this.contextMenuPath;
+                // If it's a file, use its parent folder
+                if (folder.includes('.')) folder = folder.substring(0, folder.lastIndexOf('/')) || '';
+                this.showNewFileModal(folder ? folder + '/' : '');
             }
         });
         document.getElementById('cm-delete').addEventListener('click', () => {
@@ -408,16 +444,31 @@ class ObsidianReader {
                 });
             }
 
-            // Context menu listener
+            // Context menu — right-click (desktop) + long press (mobile)
+            const showCtx = (x, y) => {
+                this.contextMenuPath = file.path;
+                this.contextMenuIsDir = file.is_dir;
+                const menu = document.getElementById('context-menu');
+                menu.style.left = `${x}px`;
+                menu.style.top = `${y}px`;
+                menu.classList.remove('hidden');
+            };
             fileElement.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                this.contextMenuPath = file.path;
-                const menu = document.getElementById('context-menu');
-                menu.style.left = `${e.pageX}px`;
-                menu.style.top = `${e.pageY}px`;
-                menu.classList.remove('hidden');
+                showCtx(e.pageX, e.pageY);
             });
+            // Long press for mobile
+            let lpTimer = null;
+            fileElement.addEventListener('touchstart', (e) => {
+                lpTimer = setTimeout(() => {
+                    e.preventDefault();
+                    const t = e.touches[0];
+                    showCtx(t.pageX, t.pageY);
+                }, 500);
+            }, { passive: false });
+            fileElement.addEventListener('touchend', () => clearTimeout(lpTimer));
+            fileElement.addEventListener('touchmove', () => clearTimeout(lpTimer));
 
             container.appendChild(fileElement);
 
@@ -536,7 +587,7 @@ class ObsidianReader {
             if (data.mtime && dtEl) {
                 const date = new Date(data.mtime * 1000);
                 const dtStr = date.toISOString().split('T')[0] + ' ' + date.toTimeString().split(' ')[0].substring(0, 5);
-                dtEl.textContent = `(${dtStr})`;
+                dtEl.textContent = dtStr;
             }
             
         } catch (error) {
@@ -723,9 +774,9 @@ class ObsidianReader {
         return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    showNewFileModal() {
+    showNewFileModal(prefix = '') {
         document.getElementById('new-file-modal').classList.remove('hidden');
-        document.getElementById('new-file-path').value = '';
+        document.getElementById('new-file-path').value = prefix;
         document.getElementById('new-file-path').focus();
         document.getElementById('new-file-error').classList.add('hidden');
     }

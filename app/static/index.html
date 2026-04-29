@@ -75,18 +75,16 @@
 <body class="text-on-surface font-body min-h-screen flex flex-col">
 
     <!-- Top Header -->
-    <header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-3 h-12 bg-[#F5F5F5] dark:bg-zinc-950 border-b border-zinc-300 dark:border-zinc-800" style="background-color: var(--c-bg2);">
-        <div class="flex items-center gap-3 overflow-hidden">
+    <header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-3 h-12 border-b" style="background-color: var(--c-sidebar); border-color: color-mix(in srgb, var(--c-body) 15%, transparent);">
+        <div class="flex items-center gap-3 overflow-hidden min-w-0">
             <button id="header-menu-btn" class="hidden h-8 w-8 flex-shrink-0 flex items-center justify-center btn-standard" title="Menu">
-                <span class="material-symbols-outlined text-[16px]" data-icon="menu" style="color: var(--c-body)">menu</span>
+                <span class="material-symbols-outlined text-[16px]" style="color: var(--c-body)">menu</span>
             </button>
-            <div class="flex items-baseline gap-2 overflow-hidden">
-                <span id="header-title" class="font-black tracking-tighter text-[14px] cursor-pointer hover:opacity-80 transition-opacity truncate max-w-[150px] md:max-w-md" title="Click to rename" style="color: var(--c-body)">OWR - VAULT</span>
-                <span id="header-datetime" class="font-mono text-[10px] uppercase hidden flex-shrink-0" style="color: var(--c-body); opacity: 0.6;"></span>
-            </div>
+            <span id="header-title" class="font-black tracking-tighter text-[14px] cursor-pointer hover:opacity-80 transition-opacity truncate max-w-[200px] md:max-w-md" title="Click to rename" style="color: var(--c-body)">OWR - VAULT</span>
         </div>
         <div class="flex items-center gap-3">
-            <span id="save-indicator" class="font-mono text-[11px] tracking-widest uppercase text-brand-orange hidden">[MODIFIED]</span>
+            <span id="save-indicator" class="font-mono text-[11px] tracking-widest uppercase hidden" style="color: var(--c-accent)">[MODIFIED]</span>
+            <span id="header-datetime" class="font-mono text-[10px] uppercase hidden flex-shrink-0" style="color: var(--c-body); opacity: 0.5;"></span>
             <button id="header-config-btn" class="hidden h-8 w-8 flex-shrink-0 flex items-center justify-center btn-standard" title="Configuration">
                 <span class="material-symbols-outlined text-[16px]" style="color: var(--c-body)">settings</span>
             </button>
@@ -196,9 +194,9 @@
 
         <!-- View: CONFIG -->
         <div id="view-config" class="view-panel w-full p-4 md:px-8 overflow-y-auto h-full pb-20 max-w-[800px] mx-auto hidden">
-            <h2 class="font-mono-value text-2xl font-bold mb-6 uppercase tracking-tighter text-zinc-900 border-b border-outline-variant pb-2">Configuration</h2>
-            <div class="bg-white border border-outline-variant p-6 shadow-sm mb-6">
-                <p class="font-mono text-sm text-zinc-600 mb-6 border-b border-zinc-200 pb-4">Adjust visual settings for the interface and reader.</p>
+            <h2 class="font-mono-value text-2xl font-bold mb-6 uppercase tracking-tighter pb-2" style="color: var(--c-body); border-bottom: 1px solid color-mix(in srgb, var(--c-body) 15%, transparent);">Configuration</h2>
+            <div class="border p-6 shadow-sm mb-6" style="background-color: var(--c-sidebar); border-color: color-mix(in srgb, var(--c-body) 12%, transparent);">
+                <p class="font-mono text-sm mb-6 pb-4" style="color: var(--c-body); opacity: 0.6; border-bottom: 1px solid color-mix(in srgb, var(--c-body) 10%, transparent);">Adjust visual settings for the interface and reader.</p>
                 
                 <div class="space-y-6">
                     <div class="flex items-center justify-between">
@@ -293,11 +291,12 @@
     </main>
 
     <!-- Context Menu -->
-    <div id="context-menu" class="hidden fixed bg-white border border-zinc-300 shadow-lg py-1 z-[100] min-w-[150px] font-mono-label text-[11px] rounded-sm uppercase">
-        <button id="cm-open" class="w-full text-left px-4 py-2 hover:bg-stone-100 flex items-center gap-2 text-zinc-800"><span class="material-symbols-outlined text-[14px]">open_in_new</span> Open</button>
-        <button id="cm-rename" class="w-full text-left px-4 py-2 hover:bg-stone-100 flex items-center gap-2 text-zinc-800"><span class="material-symbols-outlined text-[14px]">edit</span> Rename / Move</button>
-        <div class="border-b border-zinc-200 my-1"></div>
-        <button id="cm-delete" class="w-full text-left px-4 py-2 hover:bg-red-50 flex items-center gap-2 text-red-600"><span class="material-symbols-outlined text-[14px]">delete</span> Delete</button>
+    <div id="context-menu" class="hidden fixed shadow-lg py-1 z-[100] min-w-[160px] font-mono-label text-[11px] rounded-sm uppercase" style="background-color: var(--c-sidebar); border: 1px solid color-mix(in srgb, var(--c-body) 15%, transparent);">
+        <button id="cm-open" class="w-full text-left px-4 py-2 flex items-center gap-2" style="color: var(--c-body);"><span class="material-symbols-outlined text-[14px]">open_in_new</span> Open</button>
+        <button id="cm-rename" class="w-full text-left px-4 py-2 flex items-center gap-2" style="color: var(--c-body);"><span class="material-symbols-outlined text-[14px]">edit</span> Rename / Move</button>
+        <button id="cm-new-here" class="w-full text-left px-4 py-2 flex items-center gap-2" style="color: var(--c-body);"><span class="material-symbols-outlined text-[14px]">note_add</span> New File Here</button>
+        <div style="border-bottom: 1px solid color-mix(in srgb, var(--c-body) 12%, transparent); margin: 4px 0;"></div>
+        <button id="cm-delete" class="w-full text-left px-4 py-2 flex items-center gap-2 text-red-500"><span class="material-symbols-outlined text-[14px]">delete</span> Delete</button>
     </div>
 
     <!-- New File Modal -->
