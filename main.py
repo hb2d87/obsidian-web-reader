@@ -18,6 +18,13 @@ def get_active_vault(request: Request) -> str:
         return VAULT_PATH
     return full_path
 
+def secure_path(vault_path: str, user_path: str) -> str:
+    base = os.path.realpath(vault_path)
+    target = os.path.realpath(os.path.join(base, user_path.strip('/')))
+    if not target.startswith(base):
+        raise HTTPException(status_code=403, detail="Path traversal detected")
+    return target
+
 class FileItem(BaseModel):
     name: str
     path: str
@@ -139,8 +146,8 @@ async def get_recent_files(request: Request):
 async def rename_file(item: RenameItem, request: Request):
     try:
         active_vault = get_active_vault(request)
-        old_full_path = os.path.join(active_vault, item.old_path)
-        new_full_path = os.path.join(active_vault, item.new_path)
+        old_full_path = secure_path(active_vault, item.old_path)
+        new_full_path = secure_path(active_vault, item.new_path)
         
         if not os.path.exists(old_full_path):
             raise HTTPException(status_code=404, detail="File not found")
@@ -148,6 +155,8 @@ async def rename_file(item: RenameItem, request: Request):
         os.makedirs(os.path.dirname(new_full_path), exist_ok=True)
         os.rename(old_full_path, new_full_path)
         return {"success": True, "new_path": item.new_path}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -156,7 +165,7 @@ async def get_file(path: str, request: Request):
     """Read file content"""
     try:
         active_vault = get_active_vault(request)
-        full_path = os.path.join(active_vault, path)
+        full_path = secure_path(active_vault, path)
         if not os.path.exists(full_path):
             raise HTTPException(status_code=404, detail="File not found")
         
@@ -165,6 +174,8 @@ async def get_file(path: str, request: Request):
             content = f.read()
         
         return {"content": content, "mtime": mtime}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -172,7 +183,7 @@ async def get_file(path: str, request: Request):
 async def delete_file(path: str, request: Request):
     try:
         active_vault = get_active_vault(request)
-        full_path = os.path.join(active_vault, path)
+        full_path = secure_path(active_vault, path)
         if not os.path.exists(full_path):
             raise HTTPException(status_code=404, detail="File not found")
             
@@ -182,6 +193,8 @@ async def delete_file(path: str, request: Request):
             os.remove(full_path)
             
         return {"success": True}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -194,7 +207,7 @@ async def create_file(req: CreateFileRequest, request: Request):
     """Create a new file"""
     try:
         active_vault = get_active_vault(request)
-        full_path = os.path.join(active_vault, req.path)
+        full_path = secure_path(active_vault, req.path)
         
         # Ensure directory exists
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
@@ -221,7 +234,7 @@ async def save_file(req: SaveFileRequest, request: Request):
     """Write file content"""
     try:
         active_vault = get_active_vault(request)
-        full_path = os.path.join(active_vault, req.path)
+        full_path = secure_path(active_vault, req.path)
 
         # Ensure directory exists
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
@@ -230,6 +243,8 @@ async def save_file(req: SaveFileRequest, request: Request):
             f.write(req.content)
         
         return {"status": "success"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
